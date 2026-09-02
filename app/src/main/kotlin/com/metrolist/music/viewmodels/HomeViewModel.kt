@@ -335,8 +335,10 @@ class HomeViewModel @Inject constructor(
                     if (endpoint != null) {
                         YouTube.related(endpoint).onSuccess { page ->
                             // Convert YouTube songs to local Song format if they exist in database
-                            page.songs.take(10).forEach { ytSong ->
-                                database.song(ytSong.id).first()?.let { localSong ->
+                            val candidates = page.songs.take(10)
+                            val localById = database.getSongsByIds(candidates.map { it.id }).associateBy { it.id }
+                            candidates.forEach { ytSong ->
+                                localById[ytSong.id]?.let { localSong ->
                                     if (!hideVideoSongs || !localSong.song.isVideo) {
                                         ytSimilarSongs.add(localSong)
                                     }
