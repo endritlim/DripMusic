@@ -764,6 +764,8 @@ class HomeViewModel @Inject constructor(
                 .map { it[InnerTubeCookieKey] to it[AccountNameKey] }
                 .distinctUntilChanged()
                 .collect { (cookie, savedAccountName) ->
+                    // Cookie or account changed → drop cached home page of the previous account
+                    HomePageCache.invalidate()
                     if (!cookie.isNullOrEmpty()) {
                         YouTube.cookie = cookie
                         accountName.value = savedAccountName.orEmpty().ifBlank { "Guest" }
