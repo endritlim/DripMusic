@@ -466,7 +466,10 @@ class HomeViewModel @Inject constructor(
             }
 
             launch(Dispatchers.IO) {
-                YouTube.home().onSuccess { page ->
+                val cachedPage = HomePageCache.get()
+                val result = cachedPage?.let { Result.success(it) } ?: YouTube.home()
+                result.onSuccess { page ->
+                    if (cachedPage == null) HomePageCache.put(page)
                     homePage.value = page.copy(
                         sections = page.sections.mapNotNull { section ->
                             val filtered = section.items
@@ -702,6 +705,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             } else {
+                HomePageCache.invalidate()
                 load()
             }
             isRefreshing.value = false
