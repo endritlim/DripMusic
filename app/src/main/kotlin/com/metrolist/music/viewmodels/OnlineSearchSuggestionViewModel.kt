@@ -12,6 +12,7 @@ import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
+import com.metrolist.innertube.models.SearchSuggestions
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
@@ -46,6 +47,27 @@ class OnlineSearchSuggestionViewModel
         private val _viewState = MutableStateFlow(SearchSuggestionViewState())
         val viewState = _viewState.asStateFlow()
 
+        // ponytail: in-memory LRU, cleared on process death; confined to viewModelScope (main dispatcher)
+        private val suggestionCache =
+            object : LinkedHashMap<String, Pair<Long, SearchSuggestions>>(32, 0.75f, true) {
+                override fun removeEldestEntry(
+                    eldest: MutableMap.MutableEntry<String, Pair<Long, SearchSuggestions>>?,
+                ): Boolean = size > 32
+            }
+
+        private fun getSuggestionsCached(query: String): SearchSuggestions? {
+            val now = System.currentTimeMillis()
+            suggestionCache[query]?.let { (timestamp, cached) ->
+                if (now - timestamp < SUGGESTION_CACHE_TTL_MILLIS) return cached
+                suggestionCache.remove(query)
+            }
+            return null
+        }
+
+        private fun putSuggestions(query: String, result: SearchSuggestions) {
+            suggestionCache[query] = System.currentTimeMillis() to result
+        }
+
         init {
             viewModelScope.launch {
                 query
@@ -75,7 +97,9 @@ class OnlineSearchSuggestionViewModel
                                         )
                                     }
                             } else {
-                                val result = YouTube.searchSuggestions(query).getOrNull()
+                                val result =
+                                    getSuggestionsCached(query)
+                                        ?: YouTube.searchSuggestions(query).getOrNull()?.also { putSuggestions(query, it) }
                                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
                                 val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
 
@@ -160,6 +184,10 @@ class OnlineSearchSuggestionViewModel
                     }
                 }
             }
+
+        private companion object {
+            const val SUGGESTION_CACHE_TTL_MILLIS = 5L * 60L * 1000L
+        }
     }
 
 data class SearchSuggestionViewState(
