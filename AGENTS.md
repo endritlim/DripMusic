@@ -12,7 +12,7 @@ Metrolist is a 3rd party YouTube Music client written in Kotlin. It follows mate
 
 ## AI-only guidelines
 
-1. You are strictly prohibited from making ANY changes to the readme/markdown files, including this one. This is to ensure that the documentation remains accurate and consistent for all contributors.
+1. Changes to markdown files are allowed only for fork-owned documentation: `README.md`, `changelog.md`, `docs/`, and `fastlane/metadata/**.txt`. This file (`AGENTS.md`) may only be changed when explicitly requested. All other readme/markdown files (e.g. upstream guides) must not be edited, so upstream documentation stays accurate for merges.
 2. Unless explicitly requested, you are not allowed to commit, push, or merge any changes to any branch. If you are explicitly requested and authorized to commit/push/merge, you have the right to do so; the responsibility then lies with the author who requested it.
    - You should absolutely NOT use any commands that would modify the git history, do force pushes (except for rebases on your own branch), or delete branches without explicit instructions from a human.
 3. Always follow the guidelines and instructions provided by human contributors.
