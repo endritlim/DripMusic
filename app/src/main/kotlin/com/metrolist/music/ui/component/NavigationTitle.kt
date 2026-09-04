@@ -43,6 +43,7 @@ fun NavigationTitle(
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     onPlayAllClick: (() -> Unit)? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -97,6 +98,8 @@ fun NavigationTitle(
                 )
             }
         }
+
+        trailingContent?.let { it() }
 
         if (onClick != null) {
             Icon(

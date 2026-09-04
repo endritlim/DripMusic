@@ -842,6 +842,29 @@
     <string name="show_youtube_home_sections_desc">Show YouTube recommendations on the home screen: home rows, mixes, similar-to and moods &amp; genres</string>
     <string name="home_pagination">Endless scrolling</string>
     <string name="home_pagination_desc">Load more YouTube sections when scrolling to the bottom of the home screen</string>
+    <string name="hide_home_section">Hide section</string>
+    <string name="home_section_order">Home section order</string>
+    <string name="home_section_order_shuffle_hint">Section order is ignored while shuffle is enabled.</string>
+    <string name="home_sections_settings_desc">Change the order of home screen sections or hide them</string>
+    <string name="section_order_quick_picks">Quick picks</string>
+    <string name="section_order_forgotten_favorites">Forgotten favorites</string>
+    <string name="section_order_from_your_library">From your library</string>
+    <string name="section_order_recommended_mixes">Recommended mixes</string>
+    <string name="section_order_recommended_playlists">Recommended playlists for you</string>
+    <string name="section_order_account_mixes">Mixes</string>
+    <string name="section_order_podcasts">Your podcasts</string>
+    <string name="section_order_shows">Shows for you</string>
+    <string name="section_order_moods_and_genres">Moods and genres</string>
+    <string name="section_order_recaps">Recaps</string>
+    <string name="section_order_live_performances">Live performances</string>
+    <string name="section_order_music_videos">Music videos for you</string>
+    <string name="section_order_covers_and_remixes">Covers and remixes</string>
+    <string name="section_order_together">Listen together</string>
+    <string name="section_order_long_listens">Long listens</string>
+    <string name="section_order_similar_to">Similar to</string>
+    <string name="section_order_from_the_community">From the community</string>
+    <string name="section_order_artist">Single artists</string>
+    <string name="section_order_other">Everything else</string>
 
     <!-- Daily Discover -->
     <string name="daily_discover_sounds_like">Sounds like %1$s</string>

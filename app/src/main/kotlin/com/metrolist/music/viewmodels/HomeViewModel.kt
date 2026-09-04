@@ -31,12 +31,7 @@ import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.QuickPicks
 import com.metrolist.music.constants.QuickPicksKey
-import com.metrolist.music.constants.ShowDailyDiscoverKey
-import com.metrolist.music.constants.ShowForgottenFavoritesKey
-import com.metrolist.music.constants.ShowKeepListeningKey
-import com.metrolist.music.constants.ShowSpeedDialSectionKey
 import com.metrolist.music.constants.ShowWrappedCardKey
-import com.metrolist.music.constants.ShowYouTubeHomeSectionsKey
 import com.metrolist.music.constants.WrappedSeenKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Album
@@ -95,6 +90,10 @@ internal fun buildSpeedDialItems(
     (pinned + keepListening + quickPicks + home)
         .distinctBy { it.id }
         .take(27)
+
+// YouTube's first home page only carries a few sections; load() pulls continuation pages
+// until at least this many sections are present.
+private const val MIN_HOME_SECTIONS = 9
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -313,7 +312,7 @@ class HomeViewModel @Inject constructor(
         if (likedSongs.isEmpty()) return
 
         val seeds = likedSongs.shuffled().distinctBy { it.id }.take(5)
-        
+
         // Use a synchronized list to collect results safely from concurrent coroutines
         val items = java.util.Collections.synchronizedList(mutableListOf<DailyDiscoverItem>())
 
@@ -481,55 +480,48 @@ class HomeViewModel @Inject constructor(
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
-        val showKeepListening = context.dataStore.get(ShowKeepListeningKey, true)
-        val showForgottenFavorites = context.dataStore.get(ShowForgottenFavoritesKey, true)
-        val showDailyDiscover = context.dataStore.get(ShowDailyDiscoverKey, true)
-        val showYouTubeHomeSections = context.dataStore.get(ShowYouTubeHomeSectionsKey, true)
-        val showSpeedDialSection = context.dataStore.get(ShowSpeedDialSectionKey, true)
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
 
         // Phase 1: Load essential sections in parallel — local DB (fast) + YouTube home page.
         // isLoading is set to false as soon as all Phase 1 tasks complete so the UI appears quickly.
         coroutineScope {
-            launch(Dispatchers.IO) { getQuickPicks() }
-
-            if (showForgottenFavorites) launch(Dispatchers.IO) {
-                forgottenFavorites.value = database.forgottenFavorites().first()
-                    .filterVideoSongs(hideVideoSongs).shuffled().take(20)
-            }
-
-            if (showKeepListening) launch(Dispatchers.IO) {
-                val songs = database.mostPlayedSongs(fromTimeStamp = fromTimeStamp, limit = 15, offset = 5, toTimeStamp = LocalDateTime.now()).first()
-                    .filterVideoSongs(hideVideoSongs).shuffled().take(10)
-                val albums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2).first()
-                    .filter { it.album.thumbnailUrl != null }.shuffled().take(5)
-                val artists = database.mostPlayedArtists(fromTimeStamp).first()
-                    .filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }.shuffled().take(5)
-                keepListening.value = (songs + albums + artists).shuffled()
-            }
-
-            // Fetch the home page when either the YouTube sections or the speed dial need it —
-            // the speed dial is built from home page items, so skipping the fetch here would
-            // silently empty the speed dial when only the YouTube sections are hidden.
-            if (showYouTubeHomeSections || showSpeedDialSection) launch(Dispatchers.IO) {
-                YouTube.home().onSuccess { page ->
-                    homePage.value = page.copy(
-                        sections = page.sections.mapNotNull { section ->
-                            val filtered = section.items
-                                .filterOutNulls()
-                                .filterExplicit(hideExplicit)
-                                .filterVideoSongs(hideVideoSongs)
-                                .filterYoutubeShorts(hideYoutubeShorts)
-                            if (filtered.isEmpty()) null else section.copy(items = filtered)
-                        }
+            // App-generated sections (speed dial, quick picks, keep listening, forgotten
+            // favorites, daily discover) are permanently disabled in DripMusic — only
+            // YouTube content is shown on the home screen.
+            launch(Dispatchers.IO) {
+                val firstPage = YouTube.home().getOrNull()
+                    ?: run {
+                        reportException(IllegalStateException("YouTube.home() returned no page"))
+                        return@launch
+                    }
+                // The first home page only carries a few sections; pull continuation pages
+                // until the feed is full, so cold start and pull-to-refresh show the same
+                // content instead of relying on scroll-triggered pagination to catch up.
+                var combined = firstPage
+                while (combined.sections.size < MIN_HOME_SECTIONS && combined.continuation != null) {
+                    val next = YouTube.home(combined.continuation).getOrNull()
+                    if (next == null) break
+                    combined = next.copy(
+                        chips = combined.chips,
+                        sections = combined.sections + next.sections,
+                        continuation = next.continuation,
                     )
-                }.onFailure { reportException(it) }
+                }
+                homePage.value = combined.copy(
+                    sections = combined.sections.mapNotNull { section ->
+                        val filtered = section.items
+                            .filterOutNulls()
+                            .filterExplicit(hideExplicit)
+                            .filterVideoSongs(hideVideoSongs)
+                            .filterYoutubeShorts(hideYoutubeShorts)
+                        if (filtered.isEmpty()) null else section.copy(items = filtered)
+                    }
+                )
             }
 
             if (YouTube.cookie != null) {
                 launch(Dispatchers.IO) { loadAccountInfo() }
-                // Account mixes are YouTube recommendation content, gated like the other sections.
-                if (showYouTubeHomeSections) launch(Dispatchers.IO) { loadAccountPlaylists() }
+                launch(Dispatchers.IO) { loadAccountPlaylists() }
             }
         }
 
@@ -538,11 +530,9 @@ class HomeViewModel @Inject constructor(
         isLoading.value = false
 
         // Phase 2: Heavy multi-request operations — run in background without blocking the UI.
-        if (showDailyDiscover) viewModelScope.launch(Dispatchers.IO) { getDailyDiscover() }
+        viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
 
-        if (showYouTubeHomeSections) viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
-
-        if (showYouTubeHomeSections) viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             YouTube.explore().onSuccess { page ->
                 explorePage.value = page.copy(
                     newReleaseAlbums = page.newReleaseAlbums.filterOutNulls().filterExplicit(hideExplicit),
@@ -551,7 +541,7 @@ class HomeViewModel @Inject constructor(
             }.onFailure { reportException(it) }
         }
 
-        if (showYouTubeHomeSections) viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
                 .filter { it.artist.isYouTubeArtist }
                 .shuffled().take(4)

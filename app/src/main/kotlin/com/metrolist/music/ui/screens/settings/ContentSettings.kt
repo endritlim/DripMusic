@@ -71,7 +71,6 @@ import com.metrolist.music.constants.EnableZemerKey
 import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HideYoutubeShortsKey
-import com.metrolist.music.constants.HomePaginationKey
 import com.metrolist.music.constants.LanguageCodeToName
 import com.metrolist.music.constants.LyricsProviderOrderKey
 import com.metrolist.music.constants.ProxyEnabledKey
@@ -79,20 +78,13 @@ import com.metrolist.music.constants.ProxyPasswordKey
 import com.metrolist.music.constants.ProxyTypeKey
 import com.metrolist.music.constants.ProxyUrlKey
 import com.metrolist.music.constants.ProxyUsernameKey
-import com.metrolist.music.constants.QuickPicks
-import com.metrolist.music.constants.QuickPicksKey
 import com.metrolist.music.constants.RandomizeHomeOrderKey
 import com.metrolist.music.constants.SYSTEM_DEFAULT
 import com.metrolist.music.constants.ShowArtistDescriptionKey
 import com.metrolist.music.constants.ShowMostStatsPlaylistsKey
 import com.metrolist.music.constants.ShowArtistSubscriberCountKey
-import com.metrolist.music.constants.ShowDailyDiscoverKey
-import com.metrolist.music.constants.ShowForgottenFavoritesKey
-import com.metrolist.music.constants.ShowKeepListeningKey
 import com.metrolist.music.constants.ShowMonthlyListenersKey
-import com.metrolist.music.constants.ShowSpeedDialSectionKey
 import com.metrolist.music.constants.ShowWrappedCardKey
-import com.metrolist.music.constants.ShowYouTubeHomeSectionsKey
 import com.metrolist.music.constants.TopSize
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
@@ -140,7 +132,6 @@ fun ContentSettings(
         defaultValue = LyricsProviderRegistry.serializeProviderOrder(LyricsProviderRegistry.getDefaultProviderOrder())
     )
     val (lengthTop, onLengthTopChange) = rememberPreference(key = TopSize, defaultValue = "50")
-    val (quickPicks, onQuickPicksChange) = rememberEnumPreference(key = QuickPicksKey, defaultValue = QuickPicks.QUICK_PICKS)
     val (showWrappedCard, onShowWrappedCardChange) = rememberPreference(key = ShowWrappedCardKey, defaultValue = false)
     val (showMostStatsPlaylists, onShowMostStatsPlaylistsChange) =
         rememberPreference(key = ShowMostStatsPlaylistsKey, defaultValue = true)
@@ -148,12 +139,6 @@ fun ContentSettings(
         RandomizeHomeOrderKey,
         defaultValue = true
     )
-    val (showSpeedDialSection, onShowSpeedDialSectionChange) = rememberPreference(ShowSpeedDialSectionKey, defaultValue = true)
-    val (showKeepListening, onShowKeepListeningChange) = rememberPreference(ShowKeepListeningKey, defaultValue = true)
-    val (showForgottenFavorites, onShowForgottenFavoritesChange) = rememberPreference(ShowForgottenFavoritesKey, defaultValue = true)
-    val (showDailyDiscover, onShowDailyDiscoverChange) = rememberPreference(ShowDailyDiscoverKey, defaultValue = true)
-    val (showYouTubeHomeSections, onShowYouTubeHomeSectionsChange) = rememberPreference(ShowYouTubeHomeSectionsKey, defaultValue = true)
-    val (homePagination, onHomePaginationChange) = rememberPreference(HomePaginationKey, defaultValue = true)
     val (addToPlaylistPosition, onAddToPlaylistPositionChange) = rememberEnumPreference(
         AddToPlaylistPositionKey,
         AddToPlaylistPosition.BEGINNING,
@@ -578,29 +563,6 @@ fun ContentSettings(
                     onClick = { showProviderSelectionDialog = false }
                 ) {
                     Text(stringResource(R.string.close))
-                }
-            }
-        )
-    }
-
-    var showQuickPicksDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    if (showQuickPicksDialog) {
-        EnumDialog(
-            onDismiss = { showQuickPicksDialog = false },
-            onSelect = {
-                onQuickPicksChange(it)
-                showQuickPicksDialog = false
-            },
-            title = stringResource(R.string.set_quick_picks),
-            current = quickPicks,
-            values = QuickPicks.values().toList(),
-            valueText = {
-                when (it) {
-                    QuickPicks.QUICK_PICKS -> stringResource(R.string.quick_picks)
-                    QuickPicks.LAST_LISTEN -> stringResource(R.string.last_song_listened)
                 }
             }
         )
@@ -1079,140 +1041,6 @@ fun ContentSettings(
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(
-            title = stringResource(R.string.home_screen_sections),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.speed),
-                    title = { Text(stringResource(R.string.show_speed_dial_section)) },
-                    description = { Text(stringResource(R.string.show_speed_dial_section_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = showSpeedDialSection,
-                            onCheckedChange = onShowSpeedDialSectionChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (showSpeedDialSection) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onShowSpeedDialSectionChange(!showSpeedDialSection) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.history),
-                    title = { Text(stringResource(R.string.show_keep_listening)) },
-                    description = { Text(stringResource(R.string.show_keep_listening_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = showKeepListening,
-                            onCheckedChange = onShowKeepListeningChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (showKeepListening) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onShowKeepListeningChange(!showKeepListening) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.favorite),
-                    title = { Text(stringResource(R.string.show_forgotten_favorites)) },
-                    description = { Text(stringResource(R.string.show_forgotten_favorites_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = showForgottenFavorites,
-                            onCheckedChange = onShowForgottenFavoritesChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (showForgottenFavorites) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onShowForgottenFavoritesChange(!showForgottenFavorites) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.explore_outlined),
-                    title = { Text(stringResource(R.string.show_daily_discover)) },
-                    description = { Text(stringResource(R.string.show_daily_discover_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = showDailyDiscover,
-                            onCheckedChange = onShowDailyDiscoverChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (showDailyDiscover) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onShowDailyDiscoverChange(!showDailyDiscover) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.play),
-                    title = { Text(stringResource(R.string.show_youtube_home_sections)) },
-                    description = { Text(stringResource(R.string.show_youtube_home_sections_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = showYouTubeHomeSections,
-                            onCheckedChange = onShowYouTubeHomeSectionsChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (showYouTubeHomeSections) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onShowYouTubeHomeSectionsChange(!showYouTubeHomeSections) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.arrow_downward),
-                    title = { Text(stringResource(R.string.home_pagination)) },
-                    description = { Text(stringResource(R.string.home_pagination_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = homePagination,
-                            onCheckedChange = onHomePaginationChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (homePagination) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = { onHomePaginationChange(!homePagination) }
-                )
-            )
-        )
-
-        Spacer(modifier = Modifier.height(27.dp))
-
-        Material3SettingsGroup(
             title = stringResource(R.string.misc),
             items = listOf(
                 Material3SettingsItem(
@@ -1241,19 +1069,6 @@ fun ContentSettings(
                     title = { Text(stringResource(R.string.top_length)) },
                     description = { Text(lengthTop) },
                     onClick = { showTopLengthDialog = true }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.home_outlined),
-                    title = { Text(stringResource(R.string.set_quick_picks)) },
-                    description = {
-                        Text(
-                            when (quickPicks) {
-                                QuickPicks.QUICK_PICKS -> stringResource(R.string.quick_picks)
-                                QuickPicks.LAST_LISTEN -> stringResource(R.string.last_song_listened)
-                            }
-                        )
-                    },
-                    onClick = { showQuickPicksDialog = true }
                 )
             )
         )

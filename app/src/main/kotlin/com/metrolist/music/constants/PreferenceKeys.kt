@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -255,12 +256,36 @@ val WrappedSeenKey = booleanPreferencesKey("wrapped_seen")
 val LastSeenVersionKey = stringPreferencesKey("lastSeenVersion")
 val RandomizeHomeOrderKey = booleanPreferencesKey("randomizeHomeOrder")
 
-val ShowSpeedDialSectionKey = booleanPreferencesKey("show_speed_dial_section")
-val ShowKeepListeningKey = booleanPreferencesKey("show_keep_listening")
-val ShowForgottenFavoritesKey = booleanPreferencesKey("show_forgotten_favorites")
-val ShowDailyDiscoverKey = booleanPreferencesKey("show_daily_discover")
-val ShowYouTubeHomeSectionsKey = booleanPreferencesKey("show_youtube_home_sections")
-val HomePaginationKey = booleanPreferencesKey("home_pagination")
+val HiddenYouTubeHomeSectionsKey = stringSetPreferencesKey("hidden_youtube_home_sections")
+val HomeSectionOrderKey = stringPreferencesKey("home_section_order")
+val DEFAULT_HOME_SECTION_ORDER =
+    "quick_picks,forgotten_favorites,from_your_library,recommended_mixes,recommended_playlists,account_mixes,podcasts,shows,moods_and_genres,recaps,live_performances,music_videos,covers_and_remixes,together,long_listens,similar_to,from_the_community,artist,other"
+
+/**
+ * Merges a stored section order with the default: user-placed categories keep their relative
+ * order; categories missing from the stored value slot in at their default position. Unknown
+ * stored entries (e.g. from a different app version) are kept at their relative position.
+ */
+fun effectiveHomeSectionOrder(storedOrder: String): List<String> {
+    val default = DEFAULT_HOME_SECTION_ORDER.split(",")
+    val stored = storedOrder.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    val storedSet = stored.toSet()
+    val result = mutableListOf<String>()
+    val storedQueue = ArrayDeque(stored)
+    for (category in default) {
+        if (category !in storedSet) {
+            result.add(category)
+            continue
+        }
+        // Category is user-placed: emit stored entries (in the user's order) until we reach it.
+        while (storedQueue.isNotEmpty() && storedQueue.first() != category) {
+            result.add(storedQueue.removeFirst())
+        }
+        if (storedQueue.isNotEmpty()) result.add(storedQueue.removeFirst())
+    }
+    result.addAll(storedQueue)
+    return result
+}
 
 val ShowLikedPlaylistKey = booleanPreferencesKey("show_liked_playlist")
 val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist")
