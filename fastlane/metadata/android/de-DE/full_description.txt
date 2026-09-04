@@ -1,10 +1,12 @@
-Material 3 YouTube Music Client für Android
+DripMusic ist ein auf Performance fokussierter Fork des Material-3-YouTube-Music-Clients Metrolist.
 
 Funktionen:
 
 - Songs und Videos von YT Music abspielen
 - Hintergrund-Wiedergabe
 - Personalisierte Schnellauswahl
+- Konfigurierbarer Homescreen: Schalter für jede Section plus Speed-Dial-Raster, und ein Hauptschalter, der alle YouTube-Empfehlungs-Sections (Home-Reihen, Mixes, Ähnlich-wie, Stimmungen & Genres) inklusive ihrer Netzwerk-Anfragen ausblendet
+- Flüssiges Scrollen und schnelles Laden dank Performance-Fixes des Forks
 - Bibliotheksverwaltung
 - Songs für die Offline-Wiedergabe herunterladen und cachen
 - Suche nach Songs, Alben, Künstlern, Videos und Playlists
@@ -21,3 +23,5 @@ Funktionen:
 - Schlaf-Timer
 - Material 3
 - usw.
+
+Basiert auf Metrolist von MetrolistGroup, lizenziert unter GPL-3.0.
