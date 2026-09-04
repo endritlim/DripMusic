@@ -717,7 +717,7 @@ fun HomeScreen(
     val (showForgottenFavorites) = rememberPreference(ShowForgottenFavoritesKey, true)
     val (showDailyDiscover) = rememberPreference(ShowDailyDiscoverKey, true)
     val (showYouTubeHomeSections) = rememberPreference(ShowYouTubeHomeSectionsKey, true)
-    val (homePagination) = rememberPreference(HomePaginationKey, true)
+    val homePagination by rememberPreference(HomePaginationKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
     LaunchedEffect(Unit) { viewModel.loadHomeData() }
