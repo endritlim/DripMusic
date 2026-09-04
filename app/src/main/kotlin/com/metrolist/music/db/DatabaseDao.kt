@@ -704,6 +704,10 @@ interface DatabaseDao {
     suspend fun getSongsByIds(songIds: List<String>): List<Song>
 
     @Transaction
+    @Query("SELECT * FROM song WHERE id IN (:songIds)")
+    fun songsByIdsFlow(songIds: List<String>): Flow<List<Song>>
+
+    @Transaction
     @Query("SELECT * FROM song WHERE dateDownload IS NOT NULL AND isDownloaded = 0")
     fun cachePlaylistSongs(): Flow<List<Song>>
 

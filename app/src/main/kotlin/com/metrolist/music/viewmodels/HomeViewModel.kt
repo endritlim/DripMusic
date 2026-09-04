@@ -56,12 +56,15 @@ import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -112,6 +115,34 @@ class HomeViewModel @Inject constructor(
     val quickPicks = MutableStateFlow<List<Song>?>(null)
     val dailyDiscover = MutableStateFlow<List<DailyDiscoverItem>?>(null)
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
+
+    // Live variants that stay in sync with the song table (likes etc.) with one
+    // Room flow per section instead of one flow per visible item.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val quickPicksLive: StateFlow<List<Song>?> =
+        quickPicks.flatMapLatest { list ->
+            if (list == null) {
+                flowOf(null)
+            } else {
+                database.songsByIdsFlow(list.map { it.id }).map { songs ->
+                    val byId = songs.associateBy { it.id }
+                    list.mapNotNull { byId[it.id] }
+                }
+            }
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val forgottenFavoritesLive: StateFlow<List<Song>?> =
+        forgottenFavorites.flatMapLatest { list ->
+            if (list == null) {
+                flowOf(null)
+            } else {
+                database.songsByIdsFlow(list.map { it.id }).map { songs ->
+                    val byId = songs.associateBy { it.id }
+                    list.mapNotNull { byId[it.id] }
+                }
+            }
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
     val accountPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
