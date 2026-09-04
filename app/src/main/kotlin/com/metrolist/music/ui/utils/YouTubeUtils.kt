@@ -42,3 +42,6 @@ fun String.resize(
 
     return this
 }
+
+fun String.hasThumbnailSize(): Boolean =
+    GOOGLEUSERCONTENT_SIZE_PATTERN.matches(this) || GGPHT_SIZE_PATTERN.matches(this)
