@@ -34,6 +34,7 @@ import com.metrolist.music.constants.QuickPicksKey
 import com.metrolist.music.constants.ShowDailyDiscoverKey
 import com.metrolist.music.constants.ShowForgottenFavoritesKey
 import com.metrolist.music.constants.ShowKeepListeningKey
+import com.metrolist.music.constants.ShowSpeedDialSectionKey
 import com.metrolist.music.constants.ShowWrappedCardKey
 import com.metrolist.music.constants.ShowYouTubeHomeSectionsKey
 import com.metrolist.music.constants.WrappedSeenKey
@@ -484,6 +485,7 @@ class HomeViewModel @Inject constructor(
         val showForgottenFavorites = context.dataStore.get(ShowForgottenFavoritesKey, true)
         val showDailyDiscover = context.dataStore.get(ShowDailyDiscoverKey, true)
         val showYouTubeHomeSections = context.dataStore.get(ShowYouTubeHomeSectionsKey, true)
+        val showSpeedDialSection = context.dataStore.get(ShowSpeedDialSectionKey, true)
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
 
         // Phase 1: Load essential sections in parallel — local DB (fast) + YouTube home page.
@@ -506,7 +508,10 @@ class HomeViewModel @Inject constructor(
                 keepListening.value = (songs + albums + artists).shuffled()
             }
 
-            if (showYouTubeHomeSections) launch(Dispatchers.IO) {
+            // Fetch the home page when either the YouTube sections or the speed dial need it —
+            // the speed dial is built from home page items, so skipping the fetch here would
+            // silently empty the speed dial when only the YouTube sections are hidden.
+            if (showYouTubeHomeSections || showSpeedDialSection) launch(Dispatchers.IO) {
                 YouTube.home().onSuccess { page ->
                     homePage.value = page.copy(
                         sections = page.sections.mapNotNull { section ->

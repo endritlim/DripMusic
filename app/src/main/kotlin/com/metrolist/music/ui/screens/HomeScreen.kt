@@ -1072,7 +1072,9 @@ fun HomeScreen(
             explorePage?.moodAndGenres,
         ) {
             val list = mutableListOf<HomeSection>()
-            val chipActive = selectedChip != null
+            // Without YouTube home sections there is nothing to chip-filter; ignore a stale
+            // selection so it can't hide all app-generated sections.
+            val chipActive = showYouTubeHomeSections && selectedChip != null
 
             if (!chipActive && showSpeedDialSection && speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
             if (!chipActive && quickPicks?.isNotEmpty() == true) list.add(HomeSection.QuickPicks)
@@ -1225,7 +1227,7 @@ fun HomeScreen(
             ) {
                 item(contentType = "chips_row") {
                     ChipsRow(
-                        chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
+                        chips = if (showYouTubeHomeSections) homePage?.chips?.map { it to it.title } ?: emptyList() else emptyList(),
                         currentValue = selectedChip,
                         onValueUpdate = {
                             viewModel.toggleChip(it)
@@ -1257,7 +1259,7 @@ fun HomeScreen(
                 }
 
                 // Show podcast sections FIRST when podcast chip is selected (fixed at top)
-                if (selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
+                if (showYouTubeHomeSections && selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
                     // Show "Your Shows" section from official API
                     if (savedPodcastShows.isNotEmpty()) {
                         item(key = "00_your_shows_title", contentType = "section_title") {
