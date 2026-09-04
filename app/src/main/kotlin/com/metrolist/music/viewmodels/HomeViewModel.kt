@@ -476,10 +476,7 @@ class HomeViewModel @Inject constructor(
             }
 
             if (showYouTubeHomeSections) launch(Dispatchers.IO) {
-                val cachedPage = HomePageCache.get()
-                val result = cachedPage?.let { Result.success(it) } ?: YouTube.home()
-                result.onSuccess { page ->
-                    if (cachedPage == null) HomePageCache.put(page)
+                YouTube.home().onSuccess { page ->
                     homePage.value = page.copy(
                         sections = page.sections.mapNotNull { section ->
                             val filtered = section.items
@@ -715,7 +712,6 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             } else {
-                HomePageCache.invalidate()
                 load()
             }
             isRefreshing.value = false
@@ -774,8 +770,6 @@ class HomeViewModel @Inject constructor(
                 .map { it[InnerTubeCookieKey] to it[AccountNameKey] }
                 .distinctUntilChanged()
                 .collect { (cookie, savedAccountName) ->
-                    // Cookie or account changed → drop cached home page of the previous account
-                    HomePageCache.invalidate()
                     if (!cookie.isNullOrEmpty()) {
                         YouTube.cookie = cookie
                         accountName.value = savedAccountName.orEmpty().ifBlank { "Guest" }
