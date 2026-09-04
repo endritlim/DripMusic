@@ -61,6 +61,7 @@ import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -1724,14 +1725,21 @@ class MusicService :
      * prefetch can finish downloading a short file in seconds, long before the
      * user has actually listened to it (or even if they skipped away early).
      *
-     * No-op if already marked downloaded, or if we don't yet know the file's
-     * contentLength (FormatEntity not fetched yet).
+     * No-op if already marked downloaded, or if the file's content length is unknown.
      */
     private suspend fun markCachedIfFullyDownloaded(mediaId: String) {
         val song = database.song(mediaId).first() ?: return
         if (song.song.dateDownload != null || song.song.isDownloaded) return
-        val contentLength = song.format?.contentLength ?: return
-        if (!playerCache.isCached(mediaId, 0, contentLength)) return
+        val contentLength =
+            song.format?.contentLength
+                ?: ContentMetadata
+                    .getContentLength(playerCache.getContentMetadata(mediaId))
+                    .takeIf { it > 0L }
+                ?: return
+        if (!playerCache.isCached(mediaId, 0, contentLength)) {
+            delay(1_000)
+            if (!playerCache.isCached(mediaId, 0, contentLength)) return
+        }
         database.query {
             update(song.song.copy(dateDownload = java.time.LocalDateTime.now()))
         }
@@ -2442,11 +2450,11 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
-        // The track that was playing before this transition only gets marked as
-        // "fully cached" if it advanced AUTOmatically (i.e. it actually finished),
-        // never on a manual skip/seek. lastTransitionedMediaId must be read BEFORE
-        // it gets overwritten below.
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+        // Only natural completion transitions mark the previous track as fully cached,
+        // never a manual skip or seek. Read lastTransitionedMediaId before replacing it.
+        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+            reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT
+        ) {
             lastTransitionedMediaId?.let { previousId ->
                 scope.launch(Dispatchers.IO) { markCachedIfFullyDownloaded(previousId) }
             }
@@ -2546,6 +2554,10 @@ class MusicService :
         updateInitialBufferRecovery(playbackState)
 
         if (playbackState == Player.STATE_ENDED) {
+            player.currentMediaItem?.mediaId?.let { mediaId ->
+                scope.launch(Dispatchers.IO) { markCachedIfFullyDownloaded(mediaId) }
+            }
+
             // Check sleep timer guard - don't autoplay/repeat if sleep timer will pause
             val timer = sleepTimer ?: return
             if (timer.isActive && timer.pauseWhenSongEnd) {
@@ -2905,7 +2917,6 @@ class MusicService :
         }
         return error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
             error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
-            error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE ||
             error.cause is java.net.ConnectException ||
             error.cause is java.net.UnknownHostException ||
             (error.cause as? PlaybackException)?.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
@@ -2937,6 +2948,15 @@ class MusicService :
 
     private fun isRemotePlaybackError(error: PlaybackException): Boolean =
         error.errorCode == PlaybackException.ERROR_CODE_REMOTE_ERROR
+
+    private fun isStreamClientError(error: PlaybackException): Boolean =
+        error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
+            error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE ||
+            error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED ||
+            error.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
@@ -3012,15 +3032,12 @@ class MusicService :
                 handleGenericIOError(mediaId)
                 return
             }
-        }
 
-        // Transient source failures can surface without a more specific I/O code.
-        if (error.errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
-            error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
-        ) {
-            Timber.tag(TAG).d("IO error detected (${error.errorCode}), attempting recovery")
-            handleGenericIOError(mediaId)
-            return
+            isStreamClientError(error) -> {
+                Timber.tag(TAG).d("Stream client error detected (${error.errorCode}), trying the next client")
+                handleStreamClientError(mediaId, failedStreamClient)
+                return
+            }
         }
 
         if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
@@ -3241,18 +3258,16 @@ class MusicService :
         incrementRetryCount(mediaId)
 
         songUrlCache.invalidate(mediaId)
-        if (failedStreamClient == "WEB_REMIX") {
-            InnerTubeXPlayer.markWebRemixFailed(mediaId)
-        }
+        failedStreamClient?.let { InnerTubeXPlayer.markStreamClientFailed(mediaId, it) }
         Timber.tag(TAG).d("Cleared cached URL after $retryReason (client=$failedStreamClient)")
 
         if (refreshCipherConfig) {
             // A rejection can mean the cipher produced a wrong-but-non-throwing signature. If a
-            // rate-limited refresh corrects the table, allow WEB_REMIX again on the next resolution.
+            // rate-limited refresh corrects the table, allow failed clients again on the next resolution.
             scope.launch {
                 if (InnerTubeXPlayer.refreshAfterStreamRejection()) {
-                    Timber.tag(TAG).d("Player config changed after stream rejection — restoring WEB_REMIX")
-                    InnerTubeXPlayer.clearWebRemixFailures()
+                    Timber.tag(TAG).d("Player config changed after stream rejection: restoring stream clients")
+                    InnerTubeXPlayer.clearStreamClientFailures()
                 }
             }
         }
@@ -3315,6 +3330,23 @@ class MusicService :
 
                 Timber.tag(TAG).d("Retrying playback for $mediaId after IO_FILE_NOT_FOUND")
             }
+    }
+
+    private fun handleStreamClientError(
+        mediaId: String?,
+        failedStreamClient: String?,
+    ) {
+        if (mediaId == null) {
+            handleFinalFailure()
+            return
+        }
+
+        refreshStreamAndRetry(
+            mediaId = mediaId,
+            failedStreamClient = failedStreamClient,
+            refreshCipherConfig = false,
+            retryReason = "stream client error",
+        )
     }
 
     /**
@@ -4718,16 +4750,12 @@ class MusicService :
     private fun startCrossfade() {
         if (isCrossfading) return
 
-
-
-        // Preserve player state before creating the secondary player
-        // Use runBlocking to ensure we get the correct state from DataStore
-        val savedRepeatMode = runBlocking { dataStore.get(RepeatModeKey, REPEAT_MODE_OFF) }
-        val savedShuffleEnabled = runBlocking { dataStore.get(ShuffleModeKey, false) }
+        val repeatMode = player.repeatMode
+        val shuffleModeEnabled = player.shuffleModeEnabled
 
         // For repeat-one, crossfade back into the same track
         val targetIndex =
-            if (savedRepeatMode == REPEAT_MODE_ONE) {
+            if (repeatMode == REPEAT_MODE_ONE) {
                 player.currentMediaItemIndex
             } else {
                 player.nextMediaItemIndex
@@ -4750,8 +4778,8 @@ class MusicService :
 
         secPlayer.setPlaybackParameters(player.playbackParameters)
 
-        secPlayer.repeatMode = savedRepeatMode
-        secPlayer.shuffleModeEnabled = savedShuffleEnabled
+        secPlayer.repeatMode = repeatMode
+        secPlayer.shuffleModeEnabled = shuffleModeEnabled
         secPlayer.playbackParameters = player.playbackParameters
 
         try {
@@ -4767,7 +4795,7 @@ class MusicService :
 
         performCrossfadeSwap()
 
-        if (savedShuffleEnabled) {
+        if (shuffleModeEnabled) {
             val shufflePlaylistFirst = dataStore.get(ShufflePlaylistFirstKey, false)
             applyShuffleOrder(player.currentMediaItemIndex, player.mediaItemCount, shufflePlaylistFirst)
         }
@@ -4783,6 +4811,9 @@ class MusicService :
         _playerFlow.value = player
         secondaryPlayer = null
 
+        // Do not persist the retired player's temporary repeat-off state.
+        fadingPlayer?.removeListener(this)
+        sleepTimer?.let { timer -> fadingPlayer?.removeListener(timer) }
         fadingPlayer?.repeatMode = Player.REPEAT_MODE_OFF
         fadingPlayer?.let {
             val currentIndex = it.currentMediaItemIndex
@@ -4790,9 +4821,6 @@ class MusicService :
                 it.removeMediaItems(currentIndex + 1, it.mediaItemCount)
             }
         }
-
-        fadingPlayer?.removeListener(this)
-        sleepTimer?.let { timer -> fadingPlayer?.removeListener(timer) }
 
         player.addListener(
             object : Player.Listener {
