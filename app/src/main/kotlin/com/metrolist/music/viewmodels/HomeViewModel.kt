@@ -54,6 +54,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +65,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -95,6 +97,12 @@ internal fun buildSpeedDialItems(
 // until at least this many sections are present.
 private const val MIN_HOME_SECTIONS = 9
 
+// Initial home screen loading window: the loading animation shows for at least
+// MIN_HOME_LOADING_MS (so sections don't pop in one by one) and at most
+// MAX_HOME_LOADING_MS, even if background sections are still loading.
+private const val MIN_HOME_LOADING_MS = 1200L
+private const val MAX_HOME_LOADING_MS = 2500L
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     @ApplicationContext val context: Context,
@@ -107,6 +115,10 @@ class HomeViewModel @Inject constructor(
     val isRefreshing = MutableStateFlow(false)
     val isLoading = MutableStateFlow(false)
     val isRandomizing = MutableStateFlow(false)
+
+    // True only during the initial load on app start — gates the loading animation so the
+    // fully loaded home screen is revealed at once instead of section by section.
+    val showInitialLoading = MutableStateFlow(false)
 
     private val quickPicksEnum = context.dataStore.data.map {
         it[QuickPicksKey].toEnum(QuickPicks.QUICK_PICKS)
@@ -481,9 +493,9 @@ class HomeViewModel @Inject constructor(
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
+        val loadStartMs = System.currentTimeMillis()
 
         // Phase 1: Load essential sections in parallel — local DB (fast) + YouTube home page.
-        // isLoading is set to false as soon as all Phase 1 tasks complete so the UI appears quickly.
         coroutineScope {
             // App-generated sections (speed dial, quick picks, keep listening, forgotten
             // favorites, daily discover) are permanently disabled in DripMusic — only
@@ -527,22 +539,20 @@ class HomeViewModel @Inject constructor(
 
         allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
             .filter { it is Song || it is Album }
-        isLoading.value = false
 
         // Phase 2: Heavy multi-request operations — run in background without blocking the UI.
-        viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            YouTube.explore().onSuccess { page ->
-                explorePage.value = page.copy(
-                    newReleaseAlbums = page.newReleaseAlbums.filterOutNulls().filterExplicit(hideExplicit),
-                    moodAndGenres = page.moodAndGenres.filterOutNulls()
-                )
-            }.onFailure { reportException(it) }
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
+        val phase2Jobs = listOf(
+            viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() },
+            viewModelScope.launch(Dispatchers.IO) {
+                YouTube.explore().onSuccess { page ->
+                    explorePage.value = page.copy(
+                        newReleaseAlbums = page.newReleaseAlbums.filterOutNulls().filterExplicit(hideExplicit),
+                        moodAndGenres = page.moodAndGenres.filterOutNulls()
+                    )
+                }.onFailure { reportException(it) }
+            },
+            viewModelScope.launch(Dispatchers.IO) {
+                val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
                 .filter { it.artist.isYouTubeArtist }
                 .shuffled().take(4)
                 .mapNotNull {
@@ -609,6 +619,21 @@ class HomeViewModel @Inject constructor(
             similarRecommendations.value = (artistRecommendations + songRecommendations + albumRecommendations).shuffled()
             allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
                     homePage.value?.sections?.flatMap { it.items }.orEmpty()
+            },
+        )
+
+        // Reveal the home screen only once the background sections have arrived (and at least
+        // MIN_HOME_LOADING_MS have passed), or at MAX_HOME_LOADING_MS at the latest — so the
+        // sections appear at once instead of popping in one by one.
+        viewModelScope.launch {
+            val elapsed = System.currentTimeMillis() - loadStartMs
+            withTimeoutOrNull((MAX_HOME_LOADING_MS - elapsed).coerceAtLeast(0)) {
+                val minRemaining = (MIN_HOME_LOADING_MS - elapsed).coerceAtLeast(0)
+                if (minRemaining > 0) delay(minRemaining)
+                phase2Jobs.forEach { it.join() }
+            }
+            isLoading.value = false
+            showInitialLoading.value = false
         }
     }
 
@@ -837,6 +862,7 @@ class HomeViewModel @Inject constructor(
                 }
 
                 isHomeDataLoaded = true
+                showInitialLoading.value = true
                 load()
             } catch (e: Exception) {
                 isHomeDataLoaded = false

@@ -700,6 +700,7 @@ fun HomeScreen(
         }
 
     val isLoading: Boolean by viewModel.isLoading.collectAsStateWithLifecycle()
+    val showInitialLoading: Boolean by viewModel.showInitialLoading.collectAsStateWithLifecycle()
     val isMoodAndGenresLoading = isLoading && explorePage?.moodAndGenres == null
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isRandomizing by viewModel.isRandomizing.collectAsStateWithLifecycle()
@@ -1274,17 +1275,19 @@ fun HomeScreen(
                 state = lazylistState,
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
             ) {
-                item(contentType = "chips_row") {
-                    ChipsRow(
-                        chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
-                        currentValue = selectedChip,
-                        onValueUpdate = {
-                            viewModel.toggleChip(it)
-                        },
-                    )
+                if (!showInitialLoading) {
+                    item(contentType = "chips_row") {
+                        ChipsRow(
+                            chips = homePage?.chips?.map { it to it.title } ?: emptyList(),
+                            currentValue = selectedChip,
+                            onValueUpdate = {
+                                viewModel.toggleChip(it)
+                            },
+                        )
+                    }
                 }
 
-                if (isLoading && homePage?.chips.isNullOrEmpty()) {
+                if (showInitialLoading) {
                     item(key = "chips_shimmer", contentType = "chips_shimmer") {
                         ShimmerHost(showGradient = false) {
                             LazyRow(
@@ -1531,6 +1534,9 @@ fun HomeScreen(
                 }
 
                 homeSections.forEach { section ->
+                    // Sections stay hidden behind the initial loading shimmer and are revealed
+                    // all at once once everything has loaded.
+                    if (showInitialLoading) return@forEach
                     when (section) {
                         HomeSection.SpeedDial -> {
                             speedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
@@ -2694,9 +2700,12 @@ fun HomeScreen(
                 }
 
                 // Only show shimmer during initial loading, not for pagination
-                if (isLoading && homePage?.sections.isNullOrEmpty()) {
+                if (showInitialLoading) {
                     item(key = "loading_shimmer", contentType = "loading_shimmer") {
+                        // showGradient=false: the DstIn blend layer makes the first frames
+                        // stutter while its render pipeline compiles at app start.
                         ShimmerHost(
+                            showGradient = false,
                         ) {
                             repeat(2) {
                                 TextPlaceholder(
