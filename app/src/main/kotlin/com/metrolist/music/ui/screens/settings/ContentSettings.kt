@@ -84,7 +84,11 @@ import com.metrolist.music.constants.SYSTEM_DEFAULT
 import com.metrolist.music.constants.ShowArtistDescriptionKey
 import com.metrolist.music.constants.ShowMostStatsPlaylistsKey
 import com.metrolist.music.constants.ShowArtistSubscriberCountKey
+import com.metrolist.music.constants.ShowDailyDiscoverKey
+import com.metrolist.music.constants.ShowForgottenFavoritesKey
+import com.metrolist.music.constants.ShowKeepListeningKey
 import com.metrolist.music.constants.ShowMonthlyListenersKey
+import com.metrolist.music.constants.ShowSpeedDialSectionKey
 import com.metrolist.music.constants.ShowWrappedCardKey
 import com.metrolist.music.constants.TopSize
 import com.metrolist.music.ui.component.EnumDialog
@@ -140,6 +144,10 @@ fun ContentSettings(
         RandomizeHomeOrderKey,
         defaultValue = true
     )
+    val (showSpeedDialSection, onShowSpeedDialSectionChange) = rememberPreference(ShowSpeedDialSectionKey, defaultValue = true)
+    val (showKeepListening, onShowKeepListeningChange) = rememberPreference(ShowKeepListeningKey, defaultValue = true)
+    val (showForgottenFavorites, onShowForgottenFavoritesChange) = rememberPreference(ShowForgottenFavoritesKey, defaultValue = true)
+    val (showDailyDiscover, onShowDailyDiscoverChange) = rememberPreference(ShowDailyDiscoverKey, defaultValue = true)
     val (addToPlaylistPosition, onAddToPlaylistPositionChange) = rememberEnumPreference(
         AddToPlaylistPositionKey,
         AddToPlaylistPosition.BEGINNING,
@@ -1027,6 +1035,98 @@ fun ContentSettings(
                         )
                     },
                     onClick = { onShowWrappedCardChange(!showWrappedCard) }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(27.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.home_screen_sections),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.speed),
+                    title = { Text(stringResource(R.string.show_speed_dial_section)) },
+                    description = { Text(stringResource(R.string.show_speed_dial_section_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = showSpeedDialSection,
+                            onCheckedChange = onShowSpeedDialSectionChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showSpeedDialSection) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onShowSpeedDialSectionChange(!showSpeedDialSection) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.history),
+                    title = { Text(stringResource(R.string.show_keep_listening)) },
+                    description = { Text(stringResource(R.string.show_keep_listening_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = showKeepListening,
+                            onCheckedChange = onShowKeepListeningChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showKeepListening) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onShowKeepListeningChange(!showKeepListening) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.favorite),
+                    title = { Text(stringResource(R.string.show_forgotten_favorites)) },
+                    description = { Text(stringResource(R.string.show_forgotten_favorites_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = showForgottenFavorites,
+                            onCheckedChange = onShowForgottenFavoritesChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showForgottenFavorites) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onShowForgottenFavoritesChange(!showForgottenFavorites) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.explore_outlined),
+                    title = { Text(stringResource(R.string.show_daily_discover)) },
+                    description = { Text(stringResource(R.string.show_daily_discover_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = showDailyDiscover,
+                            onCheckedChange = onShowDailyDiscoverChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showDailyDiscover) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onShowDailyDiscoverChange(!showDailyDiscover) }
                 )
             )
         )
