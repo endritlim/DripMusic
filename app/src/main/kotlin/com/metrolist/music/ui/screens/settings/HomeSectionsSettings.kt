@@ -34,6 +34,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
@@ -47,7 +48,10 @@ import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
+import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.rememberPreference
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -81,14 +85,24 @@ fun HomeSectionsSettings(
     navController: NavController,
 ) {
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
     val (hiddenCategories, onHiddenCategoriesChange) =
         rememberPreference(HiddenYouTubeHomeSectionsKey, emptySet<String>())
-    val (homeSectionOrder, onHomeSectionOrderChange) =
+    val (_, onHomeSectionOrderChange) =
         rememberPreference(HomeSectionOrderKey, DEFAULT_HOME_SECTION_ORDER)
 
-    var categories by remember(homeSectionOrder) {
-        mutableStateOf(effectiveHomeSectionOrder(homeSectionOrder))
+    // Read the stored order synchronously for the first frame — rememberPreference emits its
+    // default first and the stored value a frame later, which would briefly show the default
+    // order before jumping to the custom one.
+    var categories by remember {
+        mutableStateOf(
+            runBlocking {
+                effectiveHomeSectionOrder(
+                    context.dataStore.data.first()[HomeSectionOrderKey] ?: DEFAULT_HOME_SECTION_ORDER
+                )
+            }
+        )
     }
 
     val lazyListState = rememberLazyListState()
