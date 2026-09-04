@@ -31,6 +31,9 @@ import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.QuickPicks
 import com.metrolist.music.constants.QuickPicksKey
+import com.metrolist.music.constants.ShowDailyDiscoverKey
+import com.metrolist.music.constants.ShowForgottenFavoritesKey
+import com.metrolist.music.constants.ShowKeepListeningKey
 import com.metrolist.music.constants.ShowWrappedCardKey
 import com.metrolist.music.constants.WrappedSeenKey
 import com.metrolist.music.db.MusicDatabase
@@ -445,6 +448,9 @@ class HomeViewModel @Inject constructor(
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+        val showKeepListening = context.dataStore.get(ShowKeepListeningKey, true)
+        val showForgottenFavorites = context.dataStore.get(ShowForgottenFavoritesKey, true)
+        val showDailyDiscover = context.dataStore.get(ShowDailyDiscoverKey, true)
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
 
         // Phase 1: Load essential sections in parallel — local DB (fast) + YouTube home page.
@@ -452,12 +458,12 @@ class HomeViewModel @Inject constructor(
         coroutineScope {
             launch(Dispatchers.IO) { getQuickPicks() }
 
-            launch(Dispatchers.IO) {
+            if (showForgottenFavorites) launch(Dispatchers.IO) {
                 forgottenFavorites.value = database.forgottenFavorites().first()
                     .filterVideoSongs(hideVideoSongs).shuffled().take(20)
             }
 
-            launch(Dispatchers.IO) {
+            if (showKeepListening) launch(Dispatchers.IO) {
                 val songs = database.mostPlayedSongs(fromTimeStamp = fromTimeStamp, limit = 15, offset = 5, toTimeStamp = LocalDateTime.now()).first()
                     .filterVideoSongs(hideVideoSongs).shuffled().take(10)
                 val albums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2).first()
@@ -496,7 +502,7 @@ class HomeViewModel @Inject constructor(
         isLoading.value = false
 
         // Phase 2: Heavy multi-request operations — run in background without blocking the UI.
-        viewModelScope.launch(Dispatchers.IO) { getDailyDiscover() }
+        if (showDailyDiscover) viewModelScope.launch(Dispatchers.IO) { getDailyDiscover() }
 
         viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
 
