@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.0 (pre-release)
+
+First DripMusic release. Fork changes on top of upstream Metrolist v13.6.3:
+
+- Home screen shows only YouTube content; app-internal sections (speed dial,
+  quick picks, keep listening, forgotten favorites, daily discover) are disabled
+- Home sections are grouped into 19 categories with a new settings screen
+  (Settings → Home screen sections): drag-and-drop reordering, hide/restore
+  whole categories; the menu on a home section title hides its category too
+- Pull-to-refresh now loads the full feed (continuation pages), same as on cold
+  start, and the home screen is revealed at once behind a short loading shimmer
+  instead of sections popping in one by one
+- Removed the toggles for YouTube home sections and endless scrolling
+  (both permanently enabled)
+
 ## v13.6.3-drip.1
 
 Fork changes on top of upstream Metrolist v13.6.3:
