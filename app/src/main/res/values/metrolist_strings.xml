@@ -825,6 +825,15 @@
     <string name="unpin">Unpin</string>
     <string name="randomize_home_order">Randomize home screen order</string>
     <string name="randomize_home_order_desc">Randomly reorder home screen sections using weighted priorities</string>
+    <string name="home_screen_sections">Home screen sections</string>
+    <string name="show_speed_dial_section">Speed dial</string>
+    <string name="show_speed_dial_section_desc">Show the speed dial grid on the home screen</string>
+    <string name="show_keep_listening">Keep listening</string>
+    <string name="show_keep_listening_desc">Show recently played songs, albums and artists on the home screen</string>
+    <string name="show_forgotten_favorites">Forgotten favorites</string>
+    <string name="show_forgotten_favorites_desc">Show songs you liked but haven\'t played in a while</string>
+    <string name="show_daily_discover">Daily discover</string>
+    <string name="show_daily_discover_desc">Show daily recommendations based on your liked songs</string>
 
     <!-- Daily Discover -->
     <string name="daily_discover_sounds_like">Sounds like %1$s</string>

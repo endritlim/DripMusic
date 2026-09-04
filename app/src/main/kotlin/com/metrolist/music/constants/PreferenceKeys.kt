@@ -254,6 +254,11 @@ val WrappedSeenKey = booleanPreferencesKey("wrapped_seen")
 val LastSeenVersionKey = stringPreferencesKey("lastSeenVersion")
 val RandomizeHomeOrderKey = booleanPreferencesKey("randomizeHomeOrder")
 
+val ShowSpeedDialSectionKey = booleanPreferencesKey("show_speed_dial_section")
+val ShowKeepListeningKey = booleanPreferencesKey("show_keep_listening")
+val ShowForgottenFavoritesKey = booleanPreferencesKey("show_forgotten_favorites")
+val ShowDailyDiscoverKey = booleanPreferencesKey("show_daily_discover")
+
 val ShowLikedPlaylistKey = booleanPreferencesKey("show_liked_playlist")
 val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist")
 val ShowTopPlaylistKey = booleanPreferencesKey("show_top_playlist")
