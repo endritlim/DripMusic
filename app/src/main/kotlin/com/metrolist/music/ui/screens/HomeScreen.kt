@@ -1078,13 +1078,13 @@ fun HomeScreen(
 
             if (!chipActive && showSpeedDialSection && speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
             if (!chipActive && quickPicks?.isNotEmpty() == true) list.add(HomeSection.QuickPicks)
-            if (!chipActive && communityPlaylists?.isNotEmpty() == true) list.add(HomeSection.FromTheCommunity)
+            if (!chipActive && communityPlaylists?.isNotEmpty() == true && showYouTubeHomeSections) list.add(HomeSection.FromTheCommunity)
             if (!chipActive && showDailyDiscover && dailyDiscover?.isNotEmpty() == true) list.add(HomeSection.DailyDiscover)
             if (!chipActive && showKeepListening && keepListening?.isNotEmpty() == true) list.add(HomeSection.KeepListening)
-            if (!chipActive && accountPlaylists?.isNotEmpty() == true) list.add(HomeSection.AccountPlaylists)
+            if (!chipActive && accountPlaylists?.isNotEmpty() == true && showYouTubeHomeSections) list.add(HomeSection.AccountPlaylists)
             if (!chipActive && showForgottenFavorites && forgottenFavorites?.isNotEmpty() == true) list.add(HomeSection.ForgottenFavorites)
 
-            if (!chipActive) {
+            if (showYouTubeHomeSections && !chipActive) {
                 similarRecommendations?.indices?.forEach { i ->
                     list.add(HomeSection.SimilarRecommendation(i))
                 }
@@ -1096,7 +1096,7 @@ fun HomeScreen(
                 }
             }
 
-            if (explorePage?.moodAndGenres != null) list.add(HomeSection.MoodAndGenres)
+            if (showYouTubeHomeSections && explorePage?.moodAndGenres != null) list.add(HomeSection.MoodAndGenres)
 
             if (randomizeHomeOrder) {
                 list.sortedByDescending { section ->

@@ -528,7 +528,8 @@ class HomeViewModel @Inject constructor(
 
             if (YouTube.cookie != null) {
                 launch(Dispatchers.IO) { loadAccountInfo() }
-                launch(Dispatchers.IO) { loadAccountPlaylists() }
+                // Account mixes are YouTube recommendation content, gated like the other sections.
+                if (showYouTubeHomeSections) launch(Dispatchers.IO) { loadAccountPlaylists() }
             }
         }
 
@@ -539,9 +540,9 @@ class HomeViewModel @Inject constructor(
         // Phase 2: Heavy multi-request operations — run in background without blocking the UI.
         if (showDailyDiscover) viewModelScope.launch(Dispatchers.IO) { getDailyDiscover() }
 
-        viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
+        if (showYouTubeHomeSections) viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        if (showYouTubeHomeSections) viewModelScope.launch(Dispatchers.IO) {
             YouTube.explore().onSuccess { page ->
                 explorePage.value = page.copy(
                     newReleaseAlbums = page.newReleaseAlbums.filterOutNulls().filterExplicit(hideExplicit),
@@ -550,7 +551,7 @@ class HomeViewModel @Inject constructor(
             }.onFailure { reportException(it) }
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        if (showYouTubeHomeSections) viewModelScope.launch(Dispatchers.IO) {
             val artistRecommendations = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
                 .filter { it.artist.isYouTubeArtist }
                 .shuffled().take(4)
