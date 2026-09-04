@@ -28,6 +28,8 @@ import com.metrolist.music.R
 import com.metrolist.music.db.MusicDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,6 +46,11 @@ class MetrolistWidgetManager @Inject constructor(
             .build()
     }
 
+    // updateWidgets now runs off the main thread and can be invoked from the
+    // periodic refresh loop and player events concurrently, which would otherwise
+    // race on the bitmap caches below — renders are serialized through this mutex.
+    private val renderMutex = Mutex()
+
     // Cache for album art to avoid reloading
     private var cachedArtworkUri: String? = null
     private var cachedAlbumArt: Bitmap? = null
@@ -58,67 +65,75 @@ class MetrolistWidgetManager @Inject constructor(
         duration: Long = 0,
         currentPosition: Long = 0
     ) {
-        val appWidgetManager = AppWidgetManager.getInstance(context)
+        renderMutex.withLock {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
 
-        // Use cached album art if URI hasn't changed, otherwise load new one
-        val albumArt: Bitmap?
-        val circularAlbumArt: Bitmap?
-        
-        if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null) {
-            albumArt = cachedAlbumArt
-            circularAlbumArt = cachedCircularAlbumArt
-        } else {
-            albumArt = artworkUri?.let { loadAlbumArt(it, 300) }
-            circularAlbumArt = albumArt?.let { getCircularBitmap(it) }
-            // Update cache
-            cachedArtworkUri = artworkUri
-            cachedAlbumArt = albumArt
-            cachedCircularAlbumArt = circularAlbumArt
-        }
+            val componentName = ComponentName(context, MusicWidgetReceiver::class.java)
+            val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            val turntableComponentName = ComponentName(context, TurntableWidgetReceiver::class.java)
+            val turntableWidgetIds = appWidgetManager.getAppWidgetIds(turntableComponentName)
 
-        // Update main music player widgets
-        val componentName = ComponentName(context, MusicWidgetReceiver::class.java)
-        val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
-        if (widgetIds.isNotEmpty()) {
-            widgetIds.forEach { widgetId ->
-                val options = appWidgetManager.getAppWidgetOptions(widgetId)
-                val views = createRemoteViewsForSize(
-                    options,
-                    title,
-                    artist,
-                    albumArt,
-                    isPlaying,
-                    isLiked,
-                    duration,
-                    currentPosition
-                )
-                appWidgetManager.updateAppWidget(widgetId, views)
+            // Nothing on the home screen — skip artwork decoding and binder traffic.
+            // The refresh loop runs for the whole playback session, so this is the
+            // common case. The playlist widget manager below is still called: it has
+            // its own empty-IDs guard and keeps its lastWidgetState cache current
+            // for playlist widgets added mid-playback.
+            if (widgetIds.isNotEmpty() || turntableWidgetIds.isNotEmpty()) {
+                // Use cached album art if URI hasn't changed, otherwise load new one
+                val albumArt: Bitmap?
+                val circularAlbumArt: Bitmap?
+
+                if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null) {
+                    albumArt = cachedAlbumArt
+                    circularAlbumArt = cachedCircularAlbumArt
+                } else {
+                    albumArt = artworkUri?.let { loadAlbumArt(it, 300) }
+                    circularAlbumArt = albumArt?.let { getCircularBitmap(it) }
+                    // Update cache
+                    cachedArtworkUri = artworkUri
+                    cachedAlbumArt = albumArt
+                    cachedCircularAlbumArt = circularAlbumArt
+                }
+
+                // Update main music player widgets
+                widgetIds.forEach { widgetId ->
+                    val options = appWidgetManager.getAppWidgetOptions(widgetId)
+                    val views = createRemoteViewsForSize(
+                        options,
+                        title,
+                        artist,
+                        albumArt,
+                        isPlaying,
+                        isLiked,
+                        duration,
+                        currentPosition
+                    )
+                    appWidgetManager.updateAppWidget(widgetId, views)
+                }
+
+                // Update turntable widgets
+                if (turntableWidgetIds.isNotEmpty()) {
+                    val turntableViews = createTurntableRemoteViews(
+                        circularAlbumArt,
+                        isPlaying,
+                        isLiked
+                    )
+                    turntableWidgetIds.forEach { widgetId ->
+                        appWidgetManager.updateAppWidget(widgetId, turntableViews)
+                    }
+                }
             }
-        }
 
-        // Update turntable widgets
-        val turntableComponentName = ComponentName(context, TurntableWidgetReceiver::class.java)
-        val turntableWidgetIds = appWidgetManager.getAppWidgetIds(turntableComponentName)
-        if (turntableWidgetIds.isNotEmpty()) {
-            val turntableViews = createTurntableRemoteViews(
-                circularAlbumArt,
-                isPlaying,
-                isLiked
+            playlistWidgetManager.updateWidgets(
+                title = title,
+                artist = artist,
+                artworkUri = artworkUri,
+                isPlaying = isPlaying,
+                isLiked = isLiked,
+                duration = duration,
+                currentPosition = currentPosition,
             )
-            turntableWidgetIds.forEach { widgetId ->
-                appWidgetManager.updateAppWidget(widgetId, turntableViews)
-            }
         }
-
-        playlistWidgetManager.updateWidgets(
-            title = title,
-            artist = artist,
-            artworkUri = artworkUri,
-            isPlaying = isPlaying,
-            isLiked = isLiked,
-            duration = duration,
-            currentPosition = currentPosition,
-        )
     }
 
     private fun createRemoteViewsForSize(

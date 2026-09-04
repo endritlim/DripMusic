@@ -4542,37 +4542,60 @@ class MusicService :
     /**
      * Updates all app widgets with current playback state
      */
+    private class WidgetUpdate(
+        val isPlaying: Boolean,
+        val isLiked: Boolean?,
+        val duration: Long,
+        val currentPosition: Long,
+    )
+
+    // Written on the caller thread (main), read by the render coroutine on
+    // Dispatchers.Default. @Volatile is sufficient here: this is coarse
+    // coalescing — the worst case of a race is one missed render, which the
+    // next 1s refresh tick fixes — not a critical counter.
+    @Volatile
     private var widgetUpdateInFlight = false
-    private var pendingWidgetUpdate: Pair<Boolean, Boolean?>? = null
+
+    @Volatile
+    private var pendingWidgetUpdate: WidgetUpdate? = null
 
     private fun updateWidgetUI(
         isPlaying: Boolean,
         isLiked: Boolean? = currentSong.value?.song?.let { if (it.isEpisode) it.inLibrary != null else it.liked }
     ) {
-        pendingWidgetUpdate = isPlaying to isLiked
+        // The Media3 player is bound to the main thread (its getters throw when
+        // called from any other thread), so its state is sampled here on the
+        // caller thread. The actual rendering — bitmap work plus AppWidgetManager
+        // binder traffic — runs below on Dispatchers.Default.
+        pendingWidgetUpdate = WidgetUpdate(
+            isPlaying = isPlaying,
+            isLiked = isLiked,
+            duration = if (player.duration != C.TIME_UNSET) player.duration else 0,
+            currentPosition = player.currentPosition,
+        )
         if (widgetUpdateInFlight) return
         widgetUpdateInFlight = true
 
-        scope.launch {
+        scope.launch(Dispatchers.Default) {
             try {
                 while (true) {
-                    val (playing, isLikedRequested) = pendingWidgetUpdate ?: break
+                    val update = pendingWidgetUpdate ?: break
                     pendingWidgetUpdate = null
 
                     val songData = currentSong.value
                     val song = songData?.song
                     val songTitle = song?.title ?: getString(R.string.no_song_playing)
                     val artistName = songData?.artists?.joinToArtistString(getArtistSeparator(this@MusicService)) { it.name } ?: getString(R.string.tap_to_open)
-                    val resolvedIsLiked = isLikedRequested == true
+                    val resolvedIsLiked = update.isLiked == true
 
                     widgetManager.updateWidgets(
                         title = songTitle,
                         artist = artistName,
                         artworkUri = song?.thumbnailUrl,
-                        isPlaying = playing,
+                        isPlaying = update.isPlaying,
                         isLiked = resolvedIsLiked,
-                        duration = if (player.duration != C.TIME_UNSET) player.duration else 0,
-                        currentPosition = player.currentPosition,
+                        duration = update.duration,
+                        currentPosition = update.currentPosition,
                     )
                 }
             } catch (e: Exception) {
@@ -4592,7 +4615,10 @@ class MusicService :
                     if (player.isPlaying) {
                         updateWidgetUI(true)
                     }
-                    delay(200)
+                    // The widget shows a coarse progress bar, so 1s granularity is
+                    // indistinguishable from 200ms — and saves four AppWidgetManager
+                    // binder round-trips per second.
+                    delay(1_000)
                 }
             }
     }
