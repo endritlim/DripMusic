@@ -834,6 +834,10 @@
     <string name="show_forgotten_favorites_desc">Show songs you liked but haven\'t played in a while</string>
     <string name="show_daily_discover">Daily discover</string>
     <string name="show_daily_discover_desc">Show daily recommendations based on your liked songs</string>
+    <string name="show_youtube_home_sections">YouTube home sections</string>
+    <string name="show_youtube_home_sections_desc">Show the sections recommended by YouTube on the home screen</string>
+    <string name="home_pagination">Endless scrolling</string>
+    <string name="home_pagination_desc">Load more YouTube sections when scrolling to the bottom of the home screen</string>
 
     <!-- Daily Discover -->
     <string name="daily_discover_sounds_like">Sounds like %1$s</string>

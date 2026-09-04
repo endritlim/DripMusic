@@ -35,6 +35,7 @@ import com.metrolist.music.constants.ShowDailyDiscoverKey
 import com.metrolist.music.constants.ShowForgottenFavoritesKey
 import com.metrolist.music.constants.ShowKeepListeningKey
 import com.metrolist.music.constants.ShowWrappedCardKey
+import com.metrolist.music.constants.ShowYouTubeHomeSectionsKey
 import com.metrolist.music.constants.WrappedSeenKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Album
@@ -451,6 +452,7 @@ class HomeViewModel @Inject constructor(
         val showKeepListening = context.dataStore.get(ShowKeepListeningKey, true)
         val showForgottenFavorites = context.dataStore.get(ShowForgottenFavoritesKey, true)
         val showDailyDiscover = context.dataStore.get(ShowDailyDiscoverKey, true)
+        val showYouTubeHomeSections = context.dataStore.get(ShowYouTubeHomeSectionsKey, true)
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
 
         // Phase 1: Load essential sections in parallel — local DB (fast) + YouTube home page.
@@ -473,7 +475,7 @@ class HomeViewModel @Inject constructor(
                 keepListening.value = (songs + albums + artists).shuffled()
             }
 
-            launch(Dispatchers.IO) {
+            if (showYouTubeHomeSections) launch(Dispatchers.IO) {
                 val cachedPage = HomePageCache.get()
                 val result = cachedPage?.let { Result.success(it) } ?: YouTube.home()
                 result.onSuccess { page ->

@@ -70,6 +70,7 @@ import com.metrolist.music.constants.EnableLyricsPlus
 import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.HideYoutubeShortsKey
+import com.metrolist.music.constants.HomePaginationKey
 import com.metrolist.music.constants.LanguageCodeToName
 import com.metrolist.music.constants.LyricsProviderOrderKey
 import com.metrolist.music.constants.ProxyEnabledKey
@@ -90,6 +91,7 @@ import com.metrolist.music.constants.ShowKeepListeningKey
 import com.metrolist.music.constants.ShowMonthlyListenersKey
 import com.metrolist.music.constants.ShowSpeedDialSectionKey
 import com.metrolist.music.constants.ShowWrappedCardKey
+import com.metrolist.music.constants.ShowYouTubeHomeSectionsKey
 import com.metrolist.music.constants.TopSize
 import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
@@ -148,6 +150,8 @@ fun ContentSettings(
     val (showKeepListening, onShowKeepListeningChange) = rememberPreference(ShowKeepListeningKey, defaultValue = true)
     val (showForgottenFavorites, onShowForgottenFavoritesChange) = rememberPreference(ShowForgottenFavoritesKey, defaultValue = true)
     val (showDailyDiscover, onShowDailyDiscoverChange) = rememberPreference(ShowDailyDiscoverKey, defaultValue = true)
+    val (showYouTubeHomeSections, onShowYouTubeHomeSectionsChange) = rememberPreference(ShowYouTubeHomeSectionsKey, defaultValue = true)
+    val (homePagination, onHomePaginationChange) = rememberPreference(HomePaginationKey, defaultValue = true)
     val (addToPlaylistPosition, onAddToPlaylistPositionChange) = rememberEnumPreference(
         AddToPlaylistPositionKey,
         AddToPlaylistPosition.BEGINNING,
@@ -1127,6 +1131,48 @@ fun ContentSettings(
                         )
                     },
                     onClick = { onShowDailyDiscoverChange(!showDailyDiscover) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.play),
+                    title = { Text(stringResource(R.string.show_youtube_home_sections)) },
+                    description = { Text(stringResource(R.string.show_youtube_home_sections_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = showYouTubeHomeSections,
+                            onCheckedChange = onShowYouTubeHomeSectionsChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (showYouTubeHomeSections) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onShowYouTubeHomeSectionsChange(!showYouTubeHomeSections) }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.arrow_downward),
+                    title = { Text(stringResource(R.string.home_pagination)) },
+                    description = { Text(stringResource(R.string.home_pagination_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = homePagination,
+                            onCheckedChange = onHomePaginationChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (homePagination) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onHomePaginationChange(!homePagination) }
                 )
             )
         )

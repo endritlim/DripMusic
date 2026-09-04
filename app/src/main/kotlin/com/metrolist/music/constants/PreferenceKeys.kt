@@ -258,6 +258,8 @@ val ShowSpeedDialSectionKey = booleanPreferencesKey("show_speed_dial_section")
 val ShowKeepListeningKey = booleanPreferencesKey("show_keep_listening")
 val ShowForgottenFavoritesKey = booleanPreferencesKey("show_forgotten_favorites")
 val ShowDailyDiscoverKey = booleanPreferencesKey("show_daily_discover")
+val ShowYouTubeHomeSectionsKey = booleanPreferencesKey("show_youtube_home_sections")
+val HomePaginationKey = booleanPreferencesKey("home_pagination")
 
 val ShowLikedPlaylistKey = booleanPreferencesKey("show_liked_playlist")
 val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist")

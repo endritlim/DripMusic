@@ -115,6 +115,7 @@ import com.metrolist.music.constants.AutoRadioQueueKey
 import com.metrolist.music.constants.GridItemSize
 import com.metrolist.music.constants.GridItemsSizeKey
 import com.metrolist.music.constants.GridThumbnailHeight
+import com.metrolist.music.constants.HomePaginationKey
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.ListThumbnailSize
@@ -123,6 +124,7 @@ import com.metrolist.music.constants.ShowDailyDiscoverKey
 import com.metrolist.music.constants.ShowForgottenFavoritesKey
 import com.metrolist.music.constants.ShowKeepListeningKey
 import com.metrolist.music.constants.ShowSpeedDialSectionKey
+import com.metrolist.music.constants.ShowYouTubeHomeSectionsKey
 import com.metrolist.music.constants.SmallGridThumbnailHeight
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.db.entities.Album
@@ -714,6 +716,8 @@ fun HomeScreen(
     val (showKeepListening) = rememberPreference(ShowKeepListeningKey, true)
     val (showForgottenFavorites) = rememberPreference(ShowForgottenFavoritesKey, true)
     val (showDailyDiscover) = rememberPreference(ShowDailyDiscoverKey, true)
+    val (showYouTubeHomeSections) = rememberPreference(ShowYouTubeHomeSectionsKey, true)
+    val (homePagination) = rememberPreference(HomePaginationKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
     LaunchedEffect(Unit) { viewModel.loadHomeData() }
@@ -819,7 +823,7 @@ fun HomeScreen(
                 ?.index
         }.collect { lastVisibleIndex ->
             val len = lazylistState.layoutInfo.totalItemsCount
-            if (lastVisibleIndex != null && lastVisibleIndex >= len - 3) {
+            if (lastVisibleIndex != null && lastVisibleIndex >= len - 3 && homePagination) {
                 viewModel.loadMoreYouTubeItems(homePage?.continuation)
             }
         }
@@ -1055,6 +1059,7 @@ fun HomeScreen(
             showKeepListening,
             showForgottenFavorites,
             showDailyDiscover,
+            showYouTubeHomeSections,
             speedDialItems,
             quickPicks,
             dailyDiscover,
@@ -1083,8 +1088,10 @@ fun HomeScreen(
                 }
             }
 
-            homePage?.sections?.indices?.forEach { i ->
-                list.add(HomeSection.HomePageSection(i))
+            if (showYouTubeHomeSections) {
+                homePage?.sections?.indices?.forEach { i ->
+                    list.add(HomeSection.HomePageSection(i))
+                }
             }
 
             if (explorePage?.moodAndGenres != null) list.add(HomeSection.MoodAndGenres)
