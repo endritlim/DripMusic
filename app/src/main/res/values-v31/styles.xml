@@ -3,6 +3,14 @@
     <!-- Widget Theme for Android 12+ with Dynamic Colors -->
     <style name="Theme.Widget.Metrolist" parent="@android:style/Theme.DeviceDefault.DayNight" />
 
+    <!-- Splash screen (Android 12+): brand background with the white note icon.
+         A dynamic Material You color is not possible here — the system draws the
+         splash before any app code runs, so this stays the static brand color. -->
+    <style name="Theme.Metrolist" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+    </style>
+
     <style name="Theme.Metrolist.Transparent" parent="@android:style/Theme.Translucent.NoTitleBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>

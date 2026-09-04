@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="DripMusic logo" width="160" />
+
 # DripMusic
 
 ### Material 3 YouTube Music client for Android — a performance-focused fork of [Metrolist](https://github.com/MetrolistGroup/Metrolist)
