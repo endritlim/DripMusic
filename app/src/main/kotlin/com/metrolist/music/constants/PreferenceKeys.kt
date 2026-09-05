@@ -228,6 +228,7 @@ val RandomizeHomeOrderKey = booleanPreferencesKey("randomizeHomeOrder")
 
 val HiddenYouTubeHomeSectionsKey = stringSetPreferencesKey("hidden_youtube_home_sections")
 val HomeSectionOrderKey = stringPreferencesKey("home_section_order")
+val ShowInternalHomeSectionsKey = booleanPreferencesKey("show_internal_home_sections")
 val DEFAULT_HOME_SECTION_ORDER =
     "quick_picks,forgotten_favorites,from_your_library,recommended_mixes,recommended_playlists,account_mixes,podcasts,shows,moods_and_genres,recaps,live_performances,music_videos,covers_and_remixes,together,long_listens,similar_to,from_the_community,artist,other"
 

@@ -125,6 +125,7 @@ import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.ListThumbnailSize
 import com.metrolist.music.constants.RandomizeHomeOrderKey
+import com.metrolist.music.constants.ShowInternalHomeSectionsKey
 import com.metrolist.music.constants.SmallGridThumbnailHeight
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.db.entities.Album
@@ -716,6 +717,7 @@ fun HomeScreen(
     val hiddenHomeSectionsState = rememberPreference(HiddenYouTubeHomeSectionsKey, emptySet<String>())
     val hiddenHomeSections = hiddenHomeSectionsState.value
     val (homeSectionOrder) = rememberPreference(HomeSectionOrderKey, DEFAULT_HOME_SECTION_ORDER)
+    val (showInternalHomeSectionsPref) = rememberPreference(ShowInternalHomeSectionsKey, false)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
 
     LaunchedEffect(Unit) { viewModel.loadHomeData() }
@@ -728,6 +730,9 @@ fun HomeScreen(
         remember(innerTubeCookie) {
             "SAPISID" in parseCookieString(innerTubeCookie)
         }
+    // App-generated sections are always shown when logged out; when logged in they require
+    // the toggle in the content settings.
+    val showInternalSections = !isLoggedIn || showInternalHomeSectionsPref
     val url = if (isLoggedIn) accountImageUrl else null
 
     // Extract unique podcasts from episodes for "Podcast Channels" row
@@ -1049,16 +1054,21 @@ fun HomeScreen(
         )
     }
 
-    // App-generated sections (speed dial, quick picks, keep listening, forgotten favorites,
-    // daily discover) are permanently disabled in DripMusic — the home screen shows only
-    // YouTube content. Sections are grouped into categories that can be reordered and hidden
-    // (settings/home_sections) unless section shuffling is enabled.
+    // App-generated sections are always shown when logged out; when logged in they need the
+    // toggle in content settings. All home sections are grouped into categories that can be
+    // reordered and hidden (settings/home_sections) unless section shuffling is enabled.
     val moodAndGenresTitle = stringResource(R.string.mood_and_genres)
     val fromTheCommunityTitle = stringResource(R.string.from_the_community)
     val mixesLabel = stringResource(R.string.mixes)
     val similarToLabel = stringResource(R.string.similar_to)
     fun categoryOf(section: HomeSection): String =
         when (section) {
+            HomeSection.SpeedDial,
+            HomeSection.QuickPicks,
+            HomeSection.DailyDiscover,
+            HomeSection.KeepListening,
+            HomeSection.ForgottenFavorites,
+            -> "app_internal"
             is HomeSection.SimilarRecommendation -> "similar_to"
             HomeSection.AccountPlaylists -> "account_mixes"
             HomeSection.FromTheCommunity -> "from_the_community"
@@ -1093,9 +1103,11 @@ fun HomeScreen(
         }
 
     // Hidden entries are category ids; only unclassified ("other") YouTube sections can
-    // additionally be hidden individually by their exact title.
+    // additionally be hidden individually by their exact title. App-internal sections are
+    // never hidden (always shown when logged out, toggled when logged in).
     fun isSectionHidden(section: HomeSection): Boolean {
         val category = categoryOf(section)
+        if (category == "app_internal") return false
         if (category in hiddenHomeSections) return true
         if (section is HomeSection.HomePageSection && category == "other") {
             val title = homePage?.sections?.getOrNull(section.index)?.title
@@ -1115,14 +1127,28 @@ fun HomeScreen(
             selectedChip,
             hiddenHomeSections,
             sectionOrder,
+            showInternalSections,
             accountPlaylists,
             communityPlaylists,
             similarRecommendations,
+            speedDialItems,
+            quickPicks,
+            dailyDiscover,
+            keepListening,
+            forgottenFavorites,
             homePage?.sections,
             explorePage?.moodAndGenres,
         ) {
             val list = mutableListOf<HomeSection>()
             val chipActive = selectedChip != null
+
+            if (showInternalSections && !chipActive) {
+                if (speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
+                if (quickPicks?.isNotEmpty() == true) list.add(HomeSection.QuickPicks)
+                if (dailyDiscover?.isNotEmpty() == true) list.add(HomeSection.DailyDiscover)
+                if (keepListening?.isNotEmpty() == true) list.add(HomeSection.KeepListening)
+                if (forgottenFavorites?.isNotEmpty() == true) list.add(HomeSection.ForgottenFavorites)
+            }
 
             if (!chipActive && communityPlaylists?.isNotEmpty() == true &&
                 !isSectionHidden(HomeSection.FromTheCommunity)
@@ -1214,17 +1240,30 @@ fun HomeScreen(
                 }
             } else {
                 // Fixed user-defined category order; categories missing from the preference
-                // (or brand-new ones) sort to the end. Stable sort keeps YouTube's order
-                // within a category.
+                // (or brand-new ones) sort to the end. App-internal sections always come
+                // first. Stable sort keeps YouTube's order within a category.
                 list.sortedBy { section ->
-                    val index = sectionOrder.indexOf(categoryOf(section))
-                    if (index == -1) sectionOrder.size else index
+                    if (categoryOf(section) == "app_internal") {
+                        -1
+                    } else {
+                        val index = sectionOrder.indexOf(categoryOf(section))
+                        if (index == -1) sectionOrder.size else index
+                    }
                 }
             }
         }
 
     LaunchedEffect(quickPicks) {
         quickPicksLazyGridState.scrollToItem(0)
+    }
+
+    // Internal sections load conditionally in load(); when the condition flips (login state
+    // change or the content-settings toggle), reload so they appear/disappear immediately.
+    val initialShowInternalSections = remember { showInternalSections }
+    LaunchedEffect(showInternalSections) {
+        if (showInternalSections != initialShowInternalSections) {
+            viewModel.refresh()
+        }
     }
 
     LaunchedEffect(forgottenFavorites) {

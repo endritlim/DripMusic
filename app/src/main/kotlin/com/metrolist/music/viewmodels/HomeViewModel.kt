@@ -24,6 +24,7 @@ import com.metrolist.innertube.models.filterYoutubeShorts
 import com.metrolist.innertube.pages.ExplorePage
 import com.metrolist.innertube.pages.HomePage
 import com.metrolist.innertube.utils.completed
+import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.music.constants.AccountNameKey
 import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.HideVideoSongsKey
@@ -31,6 +32,7 @@ import com.metrolist.music.constants.HideYoutubeShortsKey
 import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.QuickPicks
 import com.metrolist.music.constants.QuickPicksKey
+import com.metrolist.music.constants.ShowInternalHomeSectionsKey
 import com.metrolist.music.constants.ShowWrappedCardKey
 import com.metrolist.music.constants.WrappedSeenKey
 import com.metrolist.music.db.MusicDatabase
@@ -495,11 +497,14 @@ class HomeViewModel @Inject constructor(
         val fromTimeStamp = LocalDateTime.now().minusWeeks(2)
         val loadStartMs = System.currentTimeMillis()
 
+        // App-generated sections are always shown when logged out (the app would be nearly
+        // empty otherwise); when logged in they only load if enabled in the content settings.
+        val loggedIn = "SAPISID" in parseCookieString(YouTube.cookie.orEmpty())
+        val showInternalSections =
+            !loggedIn || context.dataStore.get(ShowInternalHomeSectionsKey, false)
+
         // Phase 1: Load essential sections in parallel — local DB (fast) + YouTube home page.
         coroutineScope {
-            // App-generated sections (speed dial, quick picks, keep listening, forgotten
-            // favorites, daily discover) are permanently disabled in DripMusic — only
-            // YouTube content is shown on the home screen.
             launch(Dispatchers.IO) {
                 val firstPage = YouTube.home().getOrNull()
                     ?: run {
@@ -535,12 +540,35 @@ class HomeViewModel @Inject constructor(
                 launch(Dispatchers.IO) { loadAccountInfo() }
                 launch(Dispatchers.IO) { loadAccountPlaylists() }
             }
+
+            if (showInternalSections) {
+                launch(Dispatchers.IO) { getQuickPicks() }
+
+                launch(Dispatchers.IO) {
+                    forgottenFavorites.value = database.forgottenFavorites().first()
+                        .filterVideoSongs(hideVideoSongs).shuffled().take(20)
+                }
+
+                launch(Dispatchers.IO) {
+                    val songs = database.mostPlayedSongs(fromTimeStamp = fromTimeStamp, limit = 15, offset = 5, toTimeStamp = LocalDateTime.now()).first()
+                        .filterVideoSongs(hideVideoSongs).shuffled().take(10)
+                    val albums = database.mostPlayedAlbums(fromTimeStamp, limit = 8, offset = 2).first()
+                        .filter { it.album.thumbnailUrl != null }.shuffled().take(5)
+                    val artists = database.mostPlayedArtists(fromTimeStamp).first()
+                        .filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }.shuffled().take(5)
+                    keepListening.value = (songs + albums + artists).shuffled()
+                }
+            }
         }
 
         allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
             .filter { it is Song || it is Album }
 
         // Phase 2: Heavy multi-request operations — run in background without blocking the UI.
+        if (showInternalSections) {
+            viewModelScope.launch(Dispatchers.IO) { getDailyDiscover() }
+        }
+
         val phase2Jobs = listOf(
             viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() },
             viewModelScope.launch(Dispatchers.IO) {
