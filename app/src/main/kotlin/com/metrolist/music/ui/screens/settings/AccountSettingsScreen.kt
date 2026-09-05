@@ -165,15 +165,6 @@ fun AccountSettingsScreen(
                         }
                     }
                 ),
-                if (isLoggedIn) {
-                    Material3SettingsItem(
-                        title = { Text(stringResource(R.string.switch_youtube_channel)) },
-                        icon = painterResource(R.drawable.account),
-                        onClick = {
-                            navController.navigate("switch_channel")
-                        },
-                    )
-                } else null,
             ),
         )
 

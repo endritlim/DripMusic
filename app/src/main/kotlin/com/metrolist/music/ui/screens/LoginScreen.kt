@@ -105,7 +105,6 @@ private data class AuthData(
 @Composable
 fun LoginScreen(
     navController: NavController,
-    isSwitchingChannel: Boolean = false,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -240,18 +239,10 @@ fun LoginScreen(
         val availableAccounts =
             YouTube.accountsList().getOrElse { throwable ->
                 Timber.e(throwable, "Login: Failed to retrieve YouTube channels")
-                if (isSwitchingChannel) {
-                    errorMessage = context.getString(R.string.youtube_channels_failed)
-                    loginStage = LoginStage.Authenticating
-                    return
-                }
                 emptyList()
             }
 
-        if (isSwitchingChannel && availableAccounts.isEmpty()) {
-            errorMessage = context.getString(R.string.youtube_channels_failed)
-            loginStage = LoginStage.Authenticating
-        } else if (availableAccounts.size > 1) {
+        if (availableAccounts.size > 1) {
             val currentAccount =
                 availableAccounts.firstOrNull { account ->
                     account.pageId == authData.dataSyncId ||
@@ -342,16 +333,7 @@ fun LoginScreen(
                     }
                     addJavascriptInterface(jsInterface, "Android")
                     webViewRef = this
-                    if (isSwitchingChannel) {
-                        restoreYouTubeCookies(YouTube.cookie)
-                    }
-                    loadUrl(
-                        if (isSwitchingChannel) {
-                            "https://music.youtube.com"
-                        } else {
-                            "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com"
-                        },
-                    )
+                    loadUrl("https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com")
                 }
             },
         )
@@ -362,11 +344,7 @@ fun LoginScreen(
 
         TopAppBar(
             title = {
-                Text(
-                    stringResource(
-                        if (isSwitchingChannel) R.string.switch_youtube_channel else R.string.login,
-                    ),
-                )
+                Text(stringResource(R.string.login))
             },
             navigationIcon = {
                 IconButton(
@@ -578,18 +556,3 @@ private data class WebAuthData(
     val dataSyncId: String?,
     val authUser: String,
 )
-
-private fun restoreYouTubeCookies(cookie: String?) {
-    val cookieManager = CookieManager.getInstance()
-    cookieManager.setAcceptCookie(true)
-    cookie
-        ?.let(::parseCookieString)
-        .orEmpty()
-        .forEach { (name, value) ->
-            cookieManager.setCookie(
-                "https://music.youtube.com",
-                "$name=$value; Domain=.youtube.com; Path=/; Secure",
-            )
-        }
-    cookieManager.flush()
-}
