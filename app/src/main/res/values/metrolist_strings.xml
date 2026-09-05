@@ -865,6 +865,11 @@
     <string name="section_order_from_the_community">From the community</string>
     <string name="section_order_artist">Single artists</string>
     <string name="section_order_other">Everything else</string>
+    <string name="personalized_browsing">Personalized browsing</string>
+    <string name="personalized_browsing_desc">Sign home and browse requests with your YouTube account so recommendations fit your taste. Turn off to browse anonymously — what you explore then won\'t shape your YouTube history or recommendations.</string>
+    <string name="account_and_sync">Account &amp; sync</string>
+    <string name="sync">Sync</string>
+    <string name="yt_sync_desc">Sync likes and playlist changes from the app to your YouTube Music account</string>
 
     <!-- Daily Discover -->
     <string name="daily_discover_sounds_like">Sounds like %1$s</string>

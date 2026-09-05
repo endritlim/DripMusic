@@ -22,20 +22,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
-import timber.log.Timber
-import com.metrolist.music.utils.reportException
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,33 +39,91 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.music.BuildConfig
 import com.metrolist.music.R
-import com.metrolist.music.constants.AccountChannelHandleKey
-import com.metrolist.music.constants.AccountEmailKey
-import com.metrolist.music.constants.AccountNameKey
-import com.metrolist.music.constants.DataSyncIdKey
-import com.metrolist.music.constants.InnerTubeAuthUserKey
 import com.metrolist.music.constants.InnerTubeCookieKey
-import com.metrolist.music.constants.UseLoginForBrowse
-import com.metrolist.music.constants.VisitorDataKey
-import com.metrolist.music.constants.YtmSyncKey
 import com.metrolist.music.ui.component.DefaultDialog
-import com.metrolist.music.ui.component.InfoLabel
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
-import com.metrolist.music.ui.component.TextFieldDialog
 import com.metrolist.music.utils.Updater
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.reportException
 import com.metrolist.music.viewmodels.AccountSettingsViewModel
 import com.metrolist.music.viewmodels.HomeViewModel
+import kotlinx.coroutines.launch
+import timber.log.Timber
+
+/**
+ * Logout confirmation with the clear/keep data choice. Shared by the profile dialog and the
+ * account settings screen; [onLoggedOut] runs after the logout completes.
+ */
+@Composable
+fun AccountLogoutDialog(
+    onDismiss: () -> Unit,
+    onLoggedOut: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val accountSettingsViewModel: AccountSettingsViewModel = hiltViewModel()
+    val (_, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        title = { Text(stringResource(R.string.logout_dialog_title)) },
+        content = {
+            Text(
+                text = stringResource(R.string.logout_dialog_message),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(horizontal = 18.dp)
+            )
+        },
+        buttons = {
+            TextButton(
+                onClick = {
+                    Timber.d("[LOGOUT_CLEAR] User chose to clear data")
+                    scope.launch {
+                        try {
+                            Timber.d("[LOGOUT_CLEAR] Starting clear and logout process")
+                            // Forget account first (stops all sync), then clear data.
+                            // This prevents background syncs from re-adding songs.
+                            accountSettingsViewModel.logoutAndClearLibraryData(context)
+                            Timber.d("[LOGOUT_CLEAR] Library data cleared and account forgotten")
+                        } catch (e: Exception) {
+                            Timber.e(e, "[LOGOUT_CLEAR] Error clearing library data, proceeding with logout")
+                            reportException(e)
+                        }
+                        onInnerTubeCookieChange("")
+                        Timber.d("[LOGOUT_CLEAR] Logout complete")
+                        onDismiss()
+                        onLoggedOut()
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.logout_clear))
+            }
+            TextButton(
+                onClick = {
+                    Timber.d("[LOGOUT_KEEP] User chose to keep data")
+                    scope.launch {
+                        Timber.d("[LOGOUT_KEEP] Starting logout process (keeping data)")
+                        accountSettingsViewModel.logoutKeepData(context, onInnerTubeCookieChange)
+                        Timber.d("[LOGOUT_KEEP] Logout complete")
+                        onDismiss()
+                        onLoggedOut()
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.logout_keep))
+            }
+        }
+    )
+}
 
 @Composable
 fun AccountSettings(
@@ -79,32 +131,18 @@ fun AccountSettings(
     onClose: () -> Unit,
     latestVersionName: String
 ) {
-    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
-    val (accountNamePref, onAccountNameChange) = rememberPreference(AccountNameKey, "")
-    val (accountEmail, onAccountEmailChange) = rememberPreference(AccountEmailKey, "")
-    val (accountChannelHandle, onAccountChannelHandleChange) = rememberPreference(AccountChannelHandleKey, "")
-    val (innerTubeCookie, onInnerTubeCookieChange) = rememberPreference(InnerTubeCookieKey, "")
-    val (visitorData, onVisitorDataChange) = rememberPreference(VisitorDataKey, "")
-    val (dataSyncId, onDataSyncIdChange) = rememberPreference(DataSyncIdKey, "")
-    val (authUser, onAuthUserChange) = rememberPreference(InnerTubeAuthUserKey, "0")
-
+    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
-    val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
-    val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
 
     val homeViewModel: HomeViewModel = hiltViewModel()
-    val accountSettingsViewModel: AccountSettingsViewModel = hiltViewModel()
     val accountName by homeViewModel.accountName.collectAsStateWithLifecycle()
     val accountImageUrl by homeViewModel.accountImageUrl.collectAsStateWithLifecycle()
 
-    var showToken by remember { mutableStateOf(false) }
-    var showTokenEditor by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -131,129 +169,15 @@ fun AccountSettings(
 
         Spacer(Modifier.height(12.dp))
 
-        // Logout confirmation dialog
         if (showLogoutDialog) {
-            DefaultDialog(
+            AccountLogoutDialog(
                 onDismiss = { showLogoutDialog = false },
-                title = { Text(stringResource(R.string.logout_dialog_title)) },
-                content = {
-                    Text(
-                        text = stringResource(R.string.logout_dialog_message),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(horizontal = 18.dp)
-                    )
-                },
-                buttons = {
-                    TextButton(
-                        onClick = {
-                            Timber.d("[LOGOUT_CLEAR] User chose to clear data")
-                            scope.launch {
-                                try {
-                                    Timber.d("[LOGOUT_CLEAR] Starting clear and logout process")
-                                    // Forget account first (stops all sync), then clear data.
-                                    // This prevents background syncs from re-adding songs.
-                                    accountSettingsViewModel.logoutAndClearLibraryData(context)
-                                    Timber.d("[LOGOUT_CLEAR] Library data cleared and account forgotten")
-                                } catch (e: Exception) {
-                                    Timber.e(e, "[LOGOUT_CLEAR] Error clearing library data, proceeding with logout")
-                                    reportException(e)
-                                }
-                                onInnerTubeCookieChange("")
-                                Timber.d("[LOGOUT_CLEAR] Logout complete")
-                                showLogoutDialog = false
-                                onClose()
-                            }
-                        }
-                    ) {
-                        Text(stringResource(R.string.logout_clear))
-                    }
-                    TextButton(
-                        onClick = {
-                            Timber.d("[LOGOUT_KEEP] User chose to keep data")
-                            scope.launch {
-                                Timber.d("[LOGOUT_KEEP] Starting logout process (keeping data)")
-                                accountSettingsViewModel.logoutKeepData(context, onInnerTubeCookieChange)
-                                Timber.d("[LOGOUT_KEEP] Logout complete")
-                                showLogoutDialog = false
-                                onClose()
-                            }
-                        }
-                    ) {
-                        Text(stringResource(R.string.logout_keep))
-                    }
-                }
-            )
-        }
-
-        if (showTokenEditor) {
-            val text = """
-                ***INNERTUBE COOKIE*** =$innerTubeCookie
-                ***VISITOR DATA*** =$visitorData
-                ***DATASYNC ID*** =$dataSyncId
-                ***AUTH USER*** =$authUser
-                ***ACCOUNT NAME*** =$accountNamePref
-                ***ACCOUNT EMAIL*** =$accountEmail
-                ***ACCOUNT CHANNEL HANDLE*** =$accountChannelHandle
-            """.trimIndent()
-
-            TextFieldDialog(
-                initialTextFieldValue = TextFieldValue(text),
-                onDone = { data ->
-                    var cookie = ""
-                    var visitorDataValue = ""
-                    var dataSyncIdValue = ""
-                    var authUserValue = "0"
-                    var accountNameValue = ""
-                    var accountEmailValue = ""
-                    var accountChannelHandleValue = ""
-
-                    data.split("\n").forEach {
-                        when {
-                            it.startsWith("***INNERTUBE COOKIE*** =") -> cookie = it.substringAfter("=")
-                            it.startsWith("***VISITOR DATA*** =") -> visitorDataValue = it.substringAfter("=")
-                            it.startsWith("***DATASYNC ID*** =") -> dataSyncIdValue = it.substringAfter("=")
-                            it.startsWith("***AUTH USER*** =") -> authUserValue = it.substringAfter("=")
-                            it.startsWith("***ACCOUNT NAME*** =") -> accountNameValue = it.substringAfter("=")
-                            it.startsWith("***ACCOUNT EMAIL*** =") -> accountEmailValue = it.substringAfter("=")
-                            it.startsWith("***ACCOUNT CHANNEL HANDLE*** =") -> accountChannelHandleValue = it.substringAfter("=")
-                        }
-                    }
-                    // Write all credentials atomically to DataStore and wait for completion
-                    // before restarting, preventing the race condition where the process
-                    // would be killed before async DataStore coroutines finished writing.
-                    accountSettingsViewModel.saveTokenAndRestart(
-                        context = context,
-                        cookie = cookie,
-                        visitorData = visitorDataValue,
-                        dataSyncId = dataSyncIdValue,
-                        authUser = authUserValue,
-                        accountName = accountNameValue,
-                        accountEmail = accountEmailValue,
-                        accountChannelHandle = accountChannelHandleValue,
-                    )
-                },
-                onDismiss = { showTokenEditor = false },
-                singleLine = false,
-                maxLines = 20,
-                isInputValid = { fullText ->
-                    // Extract the cookie value from the formatted template line,
-                    // then validate it separately — avoids the bug where parseCookieString
-                    // received the entire multi-line template and failed to find "SAPISID"
-                    // as a key because the "***INNERTUBE COOKIE*** =" prefix shadowed it.
-                    val cookieLine = fullText.lines()
-                        .find { it.startsWith("***INNERTUBE COOKIE*** =") }
-                    val cookieValue = cookieLine?.substringAfter("***INNERTUBE COOKIE*** =")?.trim() ?: ""
-                    cookieValue.isNotEmpty() && "SAPISID" in parseCookieString(cookieValue)
-                },
-                extraContent = {
-                    Spacer(Modifier.height(8.dp))
-                    InfoLabel(text = stringResource(R.string.token_adv_login_description))
-                }
+                onLoggedOut = onClose,
             )
         }
 
         Material3SettingsGroup(
-            items = listOfNotNull(
+            items = listOf(
                 Material3SettingsItem(
                     title = {
                         Row(
@@ -301,16 +225,6 @@ fun AccountSettings(
                         }
                     }
                 ),
-                if (isLoggedIn) {
-                    Material3SettingsItem(
-                        title = { Text(stringResource(R.string.switch_youtube_channel)) },
-                        icon = painterResource(R.drawable.account),
-                        onClick = {
-                            onClose()
-                            navController.navigate("switch_channel")
-                        },
-                    )
-                } else null,
             ),
             useLowContrast = true
         )
@@ -318,84 +232,14 @@ fun AccountSettings(
         Spacer(Modifier.height(8.dp))
 
         Material3SettingsGroup(
-            items = listOf(
-                Material3SettingsItem(
-                    title = {
-                        Text(
-                            when {
-                                !isLoggedIn -> stringResource(R.string.advanced_login)
-                                showToken -> stringResource(R.string.token_shown)
-                                else -> stringResource(R.string.token_hidden)
-                            }
-                        )
-                    },
-                    icon = painterResource(R.drawable.token),
-                    onClick = {
-                        if (!isLoggedIn) showTokenEditor = true
-                        else if (!showToken) showToken = true
-                        else showTokenEditor = true
-                    }
-                ),
-                Material3SettingsItem(
-                    title = { Text(stringResource(R.string.more_content)) },
-                    icon = painterResource(R.drawable.cached),
-                    trailingContent = {
-                        Switch(
-                            enabled = isLoggedIn,
-                            checked = useLoginForBrowse,
-                            onCheckedChange = {
-                                YouTube.useLoginForBrowse = it
-                                onUseLoginForBrowseChange(it)
-                            },
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (useLoginForBrowse) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    enabled = isLoggedIn
-                ),
-                Material3SettingsItem(
-                    title = { Text(stringResource(R.string.yt_sync)) },
-                    icon = painterResource(R.drawable.cached),
-                    trailingContent = {
-                        Switch(
-                            enabled = isLoggedIn,
-                            checked = ytmSync,
-                            onCheckedChange = onYtmSyncChange,
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (ytmSync) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    enabled = isLoggedIn
-                )
-            ),
-            useLowContrast = true
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Material3SettingsGroup(
             items = buildList {
                 add(
                     Material3SettingsItem(
-                        title = { Text(stringResource(R.string.integrations)) },
-                        icon = painterResource(R.drawable.integration),
+                        title = { Text(stringResource(R.string.account_and_sync)) },
+                        icon = painterResource(R.drawable.account),
                         onClick = {
                             onClose()
-                            navController.navigate("settings/integrations")
+                            navController.navigate("settings/account")
                         }
                     )
                 )
@@ -404,7 +248,7 @@ fun AccountSettings(
                         title = { Text(stringResource(R.string.settings)) },
                         icon = painterResource(R.drawable.settings),
                         showBadge = BuildConfig.UPDATER_AVAILABLE &&
-                            latestVersionName != BuildConfig.BASE_VERSION_NAME,
+                            Updater.isUpdateAvailable(BuildConfig.BASE_VERSION_NAME, latestVersionName),
                         onClick = {
                             onClose()
                             navController.navigate("settings")
@@ -412,7 +256,7 @@ fun AccountSettings(
                     )
                 )
 
-                if (BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.BASE_VERSION_NAME) {
+                if (BuildConfig.UPDATER_AVAILABLE && Updater.isUpdateAvailable(BuildConfig.BASE_VERSION_NAME, latestVersionName)) {
                     val releaseInfo = Updater.getCachedLatestRelease()
                     val downloadUrl = releaseInfo?.let { Updater.getDownloadUrlForCurrentVariant(it) }
                     if (downloadUrl != null) {
