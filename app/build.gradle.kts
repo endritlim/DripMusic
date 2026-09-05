@@ -8,6 +8,7 @@ if (localPropertiesFile.exists()) {
 }
 
 val baseApplicationId = "com.dripmusic.app"
+val dripVersionName = "0.1.0"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val buildCommit =
@@ -41,7 +42,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 153
-        versionName = "0.1.0"
+        versionName = dripVersionName
         val baseVersionName = requireNotNull(versionName)
         buildConfigField("String", "BASE_VERSION_NAME", "\"$baseVersionName\"")
         buildCommit?.let { versionName = "$baseVersionName+$it" }
@@ -205,6 +206,16 @@ android {
             excludes += "META-INF/LICENSE.md"
             excludes += "META-INF/INDEX.LIST"
             excludes += "META-INF/io.netty.versions.properties"
+        }
+    }
+}
+
+// Name APKs DripMusic-<version>-<variant><buildType>.apk instead of the default
+// app-<flavor>-<buildType>.apk.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("DripMusic-${dripVersionName}-${variant.name}.apk")
         }
     }
 }
