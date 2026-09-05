@@ -267,10 +267,10 @@ fun AccountSettingsScreen(
             title = stringResource(R.string.integrations),
             items = listOf(
                 Material3SettingsItem(
-                    title = { Text(stringResource(R.string.integrations)) },
+                    title = { Text(stringResource(R.string.listen_together)) },
                     icon = painterResource(R.drawable.integration),
                     onClick = {
-                        navController.navigate("settings/integrations")
+                        navController.navigate("settings/integrations/listen_together")
                     }
                 )
             ),
