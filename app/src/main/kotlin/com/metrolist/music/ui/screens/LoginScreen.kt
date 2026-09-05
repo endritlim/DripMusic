@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -282,10 +284,15 @@ fun LoginScreen(
         }
     }
 
+    // Only the bottom (mini player) inset is applied here — the TopAppBar consumes the
+    // status bar insets itself, so padding the top as well would double it and leave a
+    // large empty strip above the header.
     Box(
         modifier =
             Modifier
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+                .windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom),
+                )
                 .fillMaxSize(),
     ) {
         AndroidView(
