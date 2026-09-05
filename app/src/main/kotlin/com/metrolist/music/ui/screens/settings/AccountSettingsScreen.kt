@@ -47,6 +47,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
@@ -56,6 +57,7 @@ import com.metrolist.music.constants.AccountNameKey
 import com.metrolist.music.constants.DataSyncIdKey
 import com.metrolist.music.constants.InnerTubeAuthUserKey
 import com.metrolist.music.constants.InnerTubeCookieKey
+import com.metrolist.music.constants.UseLoginForBrowse
 import com.metrolist.music.constants.VisitorDataKey
 import com.metrolist.music.constants.YtmSyncKey
 import com.metrolist.music.ui.component.InfoLabel
@@ -87,6 +89,7 @@ fun AccountSettingsScreen(
     val (dataSyncId) = rememberPreference(DataSyncIdKey, "")
     val (authUser) = rememberPreference(InnerTubeAuthUserKey, "0")
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
+    val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
 
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
@@ -200,6 +203,35 @@ fun AccountSettingsScreen(
                         )
                     },
                     enabled = isLoggedIn
+                ),
+                Material3SettingsItem(
+                    title = { Text(stringResource(R.string.personalized_browsing)) },
+                    description = { Text(stringResource(R.string.personalized_browsing_desc)) },
+                    icon = painterResource(R.drawable.account),
+                    trailingContent = {
+                        Switch(
+                            enabled = isLoggedIn,
+                            checked = useLoginForBrowse,
+                            onCheckedChange = {
+                                YouTube.useLoginForBrowse = it
+                                onUseLoginForBrowseChange(it)
+                            },
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (useLoginForBrowse) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    enabled = isLoggedIn,
+                    onClick = {
+                        YouTube.useLoginForBrowse = !useLoginForBrowse
+                        onUseLoginForBrowseChange(!useLoginForBrowse)
+                    }
                 )
             ),
         )

@@ -37,9 +37,7 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.DisableScreenshotKey
 import com.metrolist.music.constants.PauseListenHistoryKey
-import com.metrolist.innertube.YouTube
 import com.metrolist.music.constants.PauseSearchHistoryKey
-import com.metrolist.music.constants.UseLoginForBrowse
 import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
@@ -64,10 +62,6 @@ fun PrivacySettings(
     val (disableScreenshot, onDisableScreenshotChange) = rememberPreference(
         key = DisableScreenshotKey,
         defaultValue = false
-    )
-    val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(
-        key = UseLoginForBrowse,
-        defaultValue = true
     )
 
     var showClearListenHistoryDialog by remember {
@@ -218,41 +212,6 @@ fun PrivacySettings(
                     icon = painterResource(R.drawable.clear_all),
                     title = { Text(stringResource(R.string.clear_search_history)) },
                     onClick = { showClearSearchHistoryDialog = true }
-                )
-            )
-        )
-
-        Spacer(modifier = Modifier.height(27.dp))
-
-        Material3SettingsGroup(
-            title = stringResource(R.string.personalized_browsing),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.account),
-                    title = { Text(stringResource(R.string.personalized_browsing)) },
-                    description = { Text(stringResource(R.string.personalized_browsing_desc)) },
-                    trailingContent = {
-                        Switch(
-                            checked = useLoginForBrowse,
-                            onCheckedChange = {
-                                YouTube.useLoginForBrowse = it
-                                onUseLoginForBrowseChange(it)
-                            },
-                            thumbContent = {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (useLoginForBrowse) R.drawable.check else R.drawable.close
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(androidx.compose.material3.SwitchDefaults.IconSize)
-                                )
-                            }
-                        )
-                    },
-                    onClick = {
-                        YouTube.useLoginForBrowse = !useLoginForBrowse
-                        onUseLoginForBrowseChange(!useLoginForBrowse)
-                    }
                 )
             )
         )
