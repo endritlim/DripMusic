@@ -246,8 +246,11 @@ constructor(
                             serializeSections(AndroidAutoSection.values().map { it to true })
                         )
                         val sections = deserializeSections(sectionsRaw)
-                        val showYoutubePlaylists = context.dataStore.get(AndroidAutoYouTubePlaylistsKey, false)
                         val sourceIsYouTube = recommendationsSource() == "youtube"
+                        // The "Mixes" node duplicates the Playlists section of the YouTube
+                        // source — only offer it with the local source.
+                        val showYoutubePlaylists = !sourceIsYouTube &&
+                            context.dataStore.get(AndroidAutoYouTubePlaylistsKey, false)
                         val rootItems = sections
                             .filter { (_, enabled) -> enabled }
                             .ifEmpty { listOf(AndroidAutoSection.LIKED to true) }
@@ -340,10 +343,7 @@ constructor(
                         }
                     }
                     MusicService.YOUTUBE_PLAYLIST -> {
-                        if (!context.dataStore.get(AndroidAutoYouTubePlaylistsKey, false)) {
-                            emptyList()
-                        } else {
-                            try {
+                        try {
                                 val allSections = mutableListOf<com.metrolist.innertube.pages.HomePage.Section>()
                                 var continuation: String? = null
                                 val maxPages = 4
@@ -380,7 +380,6 @@ constructor(
                                 reportException(e)
                                 emptyList()
                             }
-                        }
                     }
 
                     else ->

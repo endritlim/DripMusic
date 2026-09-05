@@ -872,8 +872,8 @@
     <string name="show_app_home_sections_desc">Show app-generated sections on the home screen (quick picks, keep listening, forgotten favorites, daily discover). They are always shown when you\'re not logged in; when logged in, turn this on to see them alongside your YouTube content.</string>
     <string name="android_auto_recommendations_source">Recommendations source</string>
     <string name="android_auto_recommendations_source_desc">Where the section content in Android Auto comes from</string>
-    <string name="android_auto_recommendations_youtube">YouTube (home feed)</string>
-    <string name="android_auto_recommendations_app">In-app</string>
+    <string name="android_auto_recommendations_youtube">YouTube</string>
+    <string name="android_auto_recommendations_app">Local</string>
     <string name="android_auto_recommendations_login_note">YouTube recommendations require a Google account. While logged out, in-app content is used.</string>
     <string name="sync">Sync</string>
     <string name="yt_sync_desc">Sync likes and playlist changes from the app to your YouTube Music account</string>

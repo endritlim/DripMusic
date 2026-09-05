@@ -132,6 +132,8 @@ fun AndroidAutoSettings(
     )
     val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = "SAPISID" in parseCookieString(innerTubeCookie)
+    // Effective source: YouTube needs an account; while logged out the local source is used.
+    val sourceIsYouTube = isLoggedIn && recommendationsSource == "youtube"
     var showRecommendationsSourceDialog by remember { mutableStateOf(false) }
 
     var sections by remember(sectionsRaw) {
@@ -309,7 +311,9 @@ fun AndroidAutoSettings(
 
         Spacer(Modifier.height(27.dp))
 
-        // YouTube playlists
+        // YouTube playlists (Mixes) — only relevant with the local source; the YouTube
+        // source already exposes feed playlists through its Playlists section.
+        if (!sourceIsYouTube) {
         Material3SettingsGroup(
             title = stringResource(R.string.mixes),
             items = listOf(
@@ -336,6 +340,7 @@ fun AndroidAutoSettings(
                 )
             )
         )
+        }
 
         Spacer(Modifier.height(27.dp))
 
@@ -408,9 +413,10 @@ fun AndroidAutoSettings(
             )
         }
 
+        // Search options (local library only — hidden with the YouTube source)
+        if (!sourceIsYouTube) {
         Spacer(Modifier.height(27.dp))
 
-        // Search options
         Material3SettingsGroup(
             title = stringResource(R.string.android_auto_search_options),
             items = listOf(
@@ -445,6 +451,7 @@ fun AndroidAutoSettings(
                 )
             )
         )
+        }
 
         Spacer(Modifier.height(27.dp))
     }
