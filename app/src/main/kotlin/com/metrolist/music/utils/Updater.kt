@@ -81,46 +81,43 @@ object Updater {
     }
 
     /**
-     * Parse release assets from GitHub API response
+     * Parse release assets from GitHub API response.
+     * Expects DripMusic APKs named DripMusic-<version>-<variant>.apk
+     * (e.g. DripMusic-0.1.0-fossRelease.apk); all builds are universal.
      */
     private fun parseAssets(assetsArray: JSONArray): List<ReleaseAsset> {
         val assets = mutableListOf<ReleaseAsset>()
-        
+
         for (i in 0 until assetsArray.length()) {
             val asset = assetsArray.getJSONObject(i)
             val name = asset.getString("name")
-            
+
             // Skip non-APK files
             if (!name.endsWith(".apk")) continue
-            
-            val downloadUrl = asset.getString("browser_download_url")
-            val size = asset.getLong("size")
-            
-            // Parse architecture and variant from filename
-            val (arch, variant) = when {
-                name == "Metrolist.apk" -> "universal" to "foss"
-                name == "Metrolist-with-Google-Cast.apk" -> "universal" to "gms"
-                name.startsWith("app-") && name.endsWith("-release.apk") -> {
-                    val arch = name.removePrefix("app-").removeSuffix("-release.apk")
-                    arch to "foss"
-                }
-                name.startsWith("app-") && name.endsWith("-with-Google-Cast.apk") -> {
-                    val arch = name.removePrefix("app-").removeSuffix("-with-Google-Cast.apk")
-                    arch to "gms"
-                }
-                else -> null to null
-            }
-            
-            if (arch != null && variant != null) {
-                assets.add(ReleaseAsset(name, downloadUrl, size, arch, variant))
-            }
+
+            val variant = when {
+                name.startsWith("DripMusic-") && name.endsWith("-gmsRelease.apk") -> "gms"
+                name.startsWith("DripMusic-") && name.endsWith("Release.apk") -> "foss"
+                else -> null
+            } ?: continue
+
+            assets.add(
+                ReleaseAsset(
+                    name = name,
+                    downloadUrl = asset.getString("browser_download_url"),
+                    size = asset.getLong("size"),
+                    architecture = "universal",
+                    variant = variant,
+                )
+            )
         }
-        
+
         return assets
     }
 
     /**
-     * Fetch latest release from GitHub API
+     * Fetch latest release from GitHub API. Uses the releases list (not /releases/latest)
+     * because pre-releases are excluded from /latest and DripMusic releases are pre-releases.
      */
     suspend fun getLatestRelease(forceRefresh: Boolean = false): Result<ReleaseInfo> =
         withContext(Dispatchers.IO) {
@@ -129,11 +126,14 @@ object Updater {
                 if (cachedReleaseInfo != null && !forceRefresh) {
                     return@runCatching cachedReleaseInfo!!
                 }
-                
-                val response = client.get("$GITHUB_API_BASE/releases/latest")
+
+                val response = client.get("$GITHUB_API_BASE/releases?per_page=1")
                     .bodyAsText()
-                val json = JSONObject(response)
-                
+                val releases = JSONArray(response)
+                if (releases.length() == 0) error("No releases found")
+
+                val json = releases.getJSONObject(0)
+
                 val releaseInfo = ReleaseInfo(
                     tagName = json.getString("tag_name"),
                     versionName = json.getString("name"),
@@ -141,7 +141,7 @@ object Updater {
                     releaseDate = json.getString("published_at"),
                     assets = parseAssets(json.getJSONArray("assets"))
                 )
-                
+
                 cachedReleaseInfo = releaseInfo
                 lastCheckTime = System.currentTimeMillis()
                 releaseInfo
@@ -242,17 +242,17 @@ object Updater {
                 if (!shouldFetch && cachedReleaseInfo != null) {
                     val hasUpdate = isUpdateAvailable(
                         BuildConfig.BASE_VERSION_NAME,
-                        cachedReleaseInfo!!.versionName
+                        cachedReleaseInfo!!.tagName
                     )
                     return@runCatching cachedReleaseInfo!! to hasUpdate
                 }
-                
+
                 val result = getLatestRelease(forceRefresh = true)
                 if (result.isSuccess) {
                     val releaseInfo = result.getOrThrow()
                     val hasUpdate = isUpdateAvailable(
                         BuildConfig.BASE_VERSION_NAME,
-                        releaseInfo.versionName
+                        releaseInfo.tagName
                     )
                     releaseInfo to hasUpdate
                 } else {
