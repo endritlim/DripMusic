@@ -29,9 +29,14 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
+import com.metrolist.innertube.models.ArtistItem
+import com.metrolist.innertube.models.AlbumItem
+import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.models.filterExplicit
 import com.metrolist.innertube.models.filterVideoSongs
+import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.music.R
+import com.metrolist.music.constants.AndroidAutoRecommendationsSourceKey
 import com.metrolist.music.constants.AndroidAutoSearchLocalLimitKey
 import com.metrolist.music.constants.HideExplicitKey
 import com.metrolist.music.constants.HideVideoSongsKey
@@ -85,8 +90,56 @@ constructor(
     var toggleLibrary: () -> Unit = {}
     var addToTargetPlaylist: () -> Unit = {}
 
+    // YouTube recommendations source: home feed items kept in memory for the current service
+    // lifetime (used to resolve the playable "yt_song" media ids without re-fetching).
+    private var ytHomeItems: List<YTItem>? = null
+    private val ytSongMediaItems = LinkedHashMap<String, MediaItem>()
+
     fun release() {
         scope.cancel()
+    }
+
+    private suspend fun recommendationsSource(): String =
+        if ("SAPISID" in parseCookieString(YouTube.cookie.orEmpty())) {
+            context.dataStore.get(AndroidAutoRecommendationsSourceKey, "youtube")
+        } else {
+            "app"
+        }
+
+    private suspend fun loadYouTubeHomeItems(): List<YTItem> {
+        ytHomeItems?.let { return it }
+        val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+        val allItems = mutableListOf<YTItem>()
+        var continuation: String? = null
+        for (page in 0 until 4) {
+            val result = YouTube.home(continuation)
+                .onFailure { reportException(it) }
+                .getOrNull() ?: break
+            allItems += result.sections.flatMap { section -> section.items.filterNotNull() }
+            continuation = result.continuation
+            if (continuation == null) break
+        }
+        val items = allItems
+            .filterExplicit(hideExplicit)
+            .filterVideoSongs(hideVideoSongs)
+            .distinctBy { it.id }
+        ytHomeItems = items
+        return items
+    }
+
+    private fun ytSongMediaItem(song: SongItem): MediaItem {
+        val mediaId = "${MusicService.YT_SONG}/${song.id}"
+        ytSongMediaItems[mediaId] = song.toMediaItem().let { base ->
+            MediaItem.Builder()
+                .setMediaId(mediaId)
+                .setUri(base.localConfiguration?.uri)
+                .setCustomCacheKey(base.localConfiguration?.customCacheKey)
+                .setTag(base.localConfiguration?.tag)
+                .setMediaMetadata(base.mediaMetadata)
+                .build()
+        }
+        return ytSongMediaItems.getValue(mediaId)
     }
 
     override fun onConnect(
@@ -194,18 +247,54 @@ constructor(
                         )
                         val sections = deserializeSections(sectionsRaw)
                         val showYoutubePlaylists = context.dataStore.get(AndroidAutoYouTubePlaylistsKey, false)
+                        val sourceIsYouTube = recommendationsSource() == "youtube"
                         val rootItems = sections
                             .filter { (_, enabled) -> enabled }
                             .ifEmpty { listOf(AndroidAutoSection.LIKED to true) }
                             .map { (section, _) ->
-                                when (section) {
-                                    AndroidAutoSection.LIKED -> browsableMediaItem(
-                                        "${MusicService.PLAYLIST}/${PlaylistEntity.LIKED_PLAYLIST_ID}",
-                                        context.getString(R.string.liked_songs),
-                                        null,
-                                        drawableUri(R.drawable.favorite),
-                                        MediaMetadata.MEDIA_TYPE_PLAYLIST,
-                                    )
+                                if (sourceIsYouTube) {
+                                    // YouTube home feed as the content source: no local
+                                    // "liked" equivalent — only the four media type sections.
+                                    when (section) {
+                                        AndroidAutoSection.SONGS -> browsableMediaItem(
+                                            MusicService.YT_SONGS,
+                                            context.getString(R.string.songs),
+                                            null,
+                                            drawableUri(R.drawable.music_note),
+                                            MediaMetadata.MEDIA_TYPE_PLAYLIST,
+                                        )
+                                        AndroidAutoSection.ARTISTS -> browsableMediaItem(
+                                            MusicService.YT_ARTISTS,
+                                            context.getString(R.string.artists),
+                                            null,
+                                            drawableUri(R.drawable.artist),
+                                            MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
+                                        )
+                                        AndroidAutoSection.ALBUMS -> browsableMediaItem(
+                                            MusicService.YT_ALBUMS,
+                                            context.getString(R.string.albums),
+                                            null,
+                                            drawableUri(R.drawable.album),
+                                            MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
+                                        )
+                                        AndroidAutoSection.PLAYLISTS -> browsableMediaItem(
+                                            MusicService.YT_PLAYLISTS,
+                                            context.getString(R.string.playlists),
+                                            null,
+                                            drawableUri(R.drawable.queue_music),
+                                            MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
+                                        )
+                                        AndroidAutoSection.LIKED -> null
+                                    }
+                                } else {
+                                    when (section) {
+                                        AndroidAutoSection.LIKED -> browsableMediaItem(
+                                            "${MusicService.PLAYLIST}/${PlaylistEntity.LIKED_PLAYLIST_ID}",
+                                            context.getString(R.string.liked_songs),
+                                            null,
+                                            drawableUri(R.drawable.favorite),
+                                            MediaMetadata.MEDIA_TYPE_PLAYLIST,
+                                        )
                                    AndroidAutoSection.SONGS -> browsableMediaItem(
                                         MusicService.SONG,
                                         context.getString(R.string.songs),
@@ -234,8 +323,10 @@ constructor(
                                         drawableUri(R.drawable.queue_music),
                                         MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
                                     )
+                                    }
                                 }
                             }
+                            .filterNotNull()
                         if (showYoutubePlaylists) {
                             rootItems + browsableMediaItem(
                                 MusicService.YOUTUBE_PLAYLIST,
@@ -411,9 +502,117 @@ constructor(
             parentId.startsWith("${MusicService.PLAYLIST}/") ->
                 loadPlaylistChildren(parentId, request)
 
+            parentId == MusicService.YT_SONGS ->
+                loadYouTubeHomeItems()
+                    .filterIsInstance<SongItem>()
+                    .take(100)
+                    .map { ytSongMediaItem(it) }
+
+            parentId == MusicService.YT_ARTISTS ->
+                loadYouTubeHomeItems()
+                    .filterIsInstance<ArtistItem>()
+                    .map { artist ->
+                        browsableMediaItem(
+                            "${MusicService.YT_ARTIST}/${artist.id}",
+                            artist.title,
+                            null,
+                            artist.thumbnail?.toUri(),
+                            MediaMetadata.MEDIA_TYPE_ARTIST,
+                        )
+                    }
+
+            parentId == MusicService.YT_ALBUMS ->
+                loadYouTubeHomeItems()
+                    .filterIsInstance<AlbumItem>()
+                    .map { album ->
+                        browsableMediaItem(
+                            "${MusicService.YT_ALBUM}/${album.id}",
+                            album.title,
+                            album.artists?.joinToString { it.name },
+                            album.thumbnail.toUri(),
+                            MediaMetadata.MEDIA_TYPE_ALBUM,
+                        )
+                    }
+
+            parentId == MusicService.YT_PLAYLISTS ->
+                loadYouTubeHomeItems()
+                    .filterIsInstance<PlaylistItem>()
+                    .map { playlist ->
+                        // Reuse the existing youtube_playlist scheme so browsing children and
+                        // playback work through the already-implemented branches.
+                        browsableMediaItem(
+                            "${MusicService.YOUTUBE_PLAYLIST}/${playlist.id}",
+                            playlist.title,
+                            playlist.author?.name,
+                            playlist.thumbnail?.toUri(),
+                            MediaMetadata.MEDIA_TYPE_PLAYLIST,
+                        )
+                    }
+
+            parentId.startsWith("${MusicService.YT_ARTIST}/") ->
+                loadYtArtistChildren(parentId)
+
+            parentId.startsWith("${MusicService.YT_ALBUM}/") ->
+                loadYtAlbumChildren(parentId)
+
             else -> null
         }
     }
+
+    private suspend fun loadYtArtistChildren(parentId: String): List<MediaItem> {
+        val artistId = parentId.removePrefix("${MusicService.YT_ARTIST}/")
+        return try {
+            val artist = YouTube.artist(artistId).getOrNull() ?: return emptyList()
+            val songs = artist.sections.flatMap { section -> section.items.filterNotNull() }
+                .filterIsInstance<SongItem>()
+                .distinctBy { it.id }
+                .take(50)
+            listOf(shuffleMediaItem(parentId)) + songs.map { song ->
+                ytChildMediaItem(parentId, song)
+            }
+        } catch (e: Exception) {
+            reportException(e)
+            emptyList()
+        }
+    }
+
+    private suspend fun loadYtAlbumChildren(parentId: String): List<MediaItem> {
+        val albumId = parentId.removePrefix("${MusicService.YT_ALBUM}/")
+        return try {
+            val songs = YouTube.album(albumId).getOrNull()?.songs?.take(100) ?: return emptyList()
+            listOf(shuffleMediaItem(parentId)) + songs.map { song ->
+                ytChildMediaItem(parentId, song)
+            }
+        } catch (e: Exception) {
+            reportException(e)
+            emptyList()
+        }
+    }
+
+    private fun ytChildMediaItem(parentId: String, song: SongItem): MediaItem {
+        val mediaId = "$parentId/${song.id}"
+        val base = song.toMediaItem()
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setUri(base.localConfiguration?.uri)
+            .setCustomCacheKey(base.localConfiguration?.customCacheKey)
+            .setTag(base.localConfiguration?.tag)
+            .setMediaMetadata(base.mediaMetadata)
+            .build()
+    }
+
+    private fun shuffleMediaItem(parentId: String): MediaItem =
+        MediaItem.Builder()
+            .setMediaId("$parentId/${MusicService.SHUFFLE_ACTION}")
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(context.getString(R.string.shuffle))
+                    .setArtworkUri(drawableUri(R.drawable.shuffle))
+                    .setIsPlayable(true)
+                    .setIsBrowsable(false)
+                    .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
+                    .build()
+            ).build()
 
     private suspend fun loadPlaylistContainers(request: AndroidAutoPageRequest): List<MediaItem> {
         val builtInItems =
@@ -750,6 +949,70 @@ constructor(
                     }
                 }
 
+                MusicService.YT_SONG -> {
+                    val songId = path.getOrNull(1) ?: return@future defaultResult
+                    val mediaId = "${MusicService.YT_SONG}/$songId"
+                    if (ytSongMediaItems.isEmpty()) {
+                        runCatching { loadYouTubeHomeItems() }
+                            .getOrNull()
+                            ?.filterIsInstance<SongItem>()
+                            ?.take(100)
+                            ?.forEach { ytSongMediaItem(it) }
+                    }
+                    val songs = ytSongMediaItems.values.toList()
+                    val index = songs.indexOfFirst { it.mediaId == mediaId }
+                    if (songs.isEmpty() || index == -1) {
+                        return@future defaultResult
+                    }
+                    MediaItemsWithStartPosition(songs, index, C.TIME_UNSET)
+                }
+
+                MusicService.YT_ARTIST -> {
+                    val songId = path.getOrNull(2) ?: return@future defaultResult
+                    val artistId = path.getOrNull(1) ?: return@future defaultResult
+                    val songs = try {
+                        val artist = YouTube.artist(artistId).getOrNull() ?: return@future defaultResult
+                        artist.sections.flatMap { section -> section.items.filterNotNull() }
+                            .filterIsInstance<SongItem>()
+                            .distinctBy { it.id }
+                            .take(50)
+                            .map { it.toMediaItem() }
+                    } catch (e: Exception) {
+                        reportException(e)
+                        return@future defaultResult
+                    }
+                    if (songId == MusicService.SHUFFLE_ACTION) {
+                        MediaItemsWithStartPosition(songs.shuffled(), 0, C.TIME_UNSET)
+                    } else {
+                        MediaItemsWithStartPosition(
+                            songs,
+                            songs.indexOfFirst { it.mediaId == songId }.takeIf { it != -1 } ?: 0,
+                            C.TIME_UNSET
+                        )
+                    }
+                }
+
+                MusicService.YT_ALBUM -> {
+                    val songId = path.getOrNull(2) ?: return@future defaultResult
+                    val albumId = path.getOrNull(1) ?: return@future defaultResult
+                    val songs = try {
+                        YouTube.album(albumId).getOrNull()?.songs?.map { it.toMediaItem() }
+                            ?: return@future defaultResult
+                    } catch (e: Exception) {
+                        reportException(e)
+                        return@future defaultResult
+                    }
+                    if (songId == MusicService.SHUFFLE_ACTION) {
+                        MediaItemsWithStartPosition(songs.shuffled(), 0, C.TIME_UNSET)
+                    } else {
+                        MediaItemsWithStartPosition(
+                            songs,
+                            songs.indexOfFirst { it.mediaId == songId }.takeIf { it != -1 } ?: 0,
+                            C.TIME_UNSET
+                        )
+                    }
+                }
+
                 MusicService.SEARCH -> {
                     val songId = path.getOrNull(2) ?: return@future defaultResult
                     val searchQuery = path.getOrNull(1) ?: return@future defaultResult
@@ -934,10 +1197,16 @@ internal fun isBrowsableMediaId(mediaId: String): Boolean =
         mediaId == MusicService.ALBUM ||
         mediaId == MusicService.PLAYLIST ||
         mediaId == MusicService.YOUTUBE_PLAYLIST ||
+        mediaId == MusicService.YT_SONGS ||
+        mediaId == MusicService.YT_ARTISTS ||
+        mediaId == MusicService.YT_ALBUMS ||
+        mediaId == MusicService.YT_PLAYLISTS ||
         mediaId.startsWith("${MusicService.ARTIST}/") ||
         mediaId.startsWith("${MusicService.ALBUM}/") ||
         mediaId.startsWith("${MusicService.PLAYLIST}/") ||
-        mediaId.startsWith("${MusicService.YOUTUBE_PLAYLIST}/")
+        mediaId.startsWith("${MusicService.YOUTUBE_PLAYLIST}/") ||
+        mediaId.startsWith("${MusicService.YT_ARTIST}/") ||
+        mediaId.startsWith("${MusicService.YT_ALBUM}/")
 
 internal fun <T> List<T>.paginate(
     page: Int,

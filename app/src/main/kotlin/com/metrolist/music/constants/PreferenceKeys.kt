@@ -518,6 +518,7 @@ val AndroidAutoYouTubePlaylistsKey = booleanPreferencesKey("androidAutoYoutubePl
 val AndroidAutoSectionsOrderKey = stringPreferencesKey("androidAutoSectionsOrder")
 val AndroidAutoTargetPlaylistKey = stringPreferencesKey("androidAutoTargetPlaylist")
 val AndroidAutoSearchLocalLimitKey = intPreferencesKey("androidAutoSearchLocalLimit")
+val AndroidAutoRecommendationsSourceKey = stringPreferencesKey("androidAutoRecommendationsSource")
 val InnerTubeCookieKey = stringPreferencesKey("innerTubeCookie")
 val AccountNameKey = stringPreferencesKey("accountName")
 val AccountEmailKey = stringPreferencesKey("accountEmail")

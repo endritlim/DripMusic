@@ -4435,6 +4435,15 @@ class MusicService :
         const val SEARCH = "search"
         const val SHUFFLE_ACTION = "__shuffle__"
 
+        // Android Auto recommendations with YouTube as the source
+        const val YT_SONGS = "yt_songs"
+        const val YT_ARTISTS = "yt_artists"
+        const val YT_ALBUMS = "yt_albums"
+        const val YT_PLAYLISTS = "yt_playlists"
+        const val YT_SONG = "yt_song"
+        const val YT_ARTIST = "yt_artist"
+        const val YT_ALBUM = "yt_album"
+
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
         const val ERROR_CODE_NO_STREAM = 1000001

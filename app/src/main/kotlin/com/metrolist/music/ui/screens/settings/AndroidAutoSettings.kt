@@ -42,13 +42,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.AndroidAutoRecommendationsSourceKey
 import com.metrolist.music.constants.AndroidAutoSearchLocalLimitKey
 import com.metrolist.music.constants.AndroidAutoSectionsOrderKey
 import com.metrolist.music.constants.AndroidAutoTargetPlaylistKey
 import com.metrolist.music.constants.AndroidAutoYouTubePlaylistsKey
+import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.MediaSessionConstants
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
@@ -122,6 +125,14 @@ fun AndroidAutoSettings(
         AndroidAutoSearchLocalLimitKey,
         defaultValue = 75
     )
+
+    val (recommendationsSource, onRecommendationsSourceChange) = rememberPreference(
+        AndroidAutoRecommendationsSourceKey,
+        defaultValue = "youtube"
+    )
+    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
+    val isLoggedIn = "SAPISID" in parseCookieString(innerTubeCookie)
+    var showRecommendationsSourceDialog by remember { mutableStateOf(false) }
 
     var sections by remember(sectionsRaw) {
         mutableStateOf(deserializeSections(sectionsRaw))
@@ -325,6 +336,77 @@ fun AndroidAutoSettings(
                 )
             )
         )
+
+        Spacer(Modifier.height(27.dp))
+
+        // Recommendations source
+        Material3SettingsGroup(
+            title = stringResource(R.string.android_auto_recommendations_source),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.play),
+                    title = { Text(stringResource(R.string.android_auto_recommendations_source)) },
+                    description = {
+                        Text(
+                            stringResource(
+                                if (isLoggedIn) {
+                                    if (recommendationsSource == "youtube") {
+                                        R.string.android_auto_recommendations_youtube
+                                    } else {
+                                        R.string.android_auto_recommendations_app
+                                    }
+                                } else {
+                                    R.string.android_auto_recommendations_login_note
+                                }
+                            )
+                        )
+                    },
+                    enabled = isLoggedIn,
+                    onClick = { if (isLoggedIn) showRecommendationsSourceDialog = true }
+                )
+            )
+        )
+
+        if (showRecommendationsSourceDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showRecommendationsSourceDialog = false },
+                title = { Text(stringResource(R.string.android_auto_recommendations_source)) },
+                text = {
+                    Column {
+                        listOf("youtube" to R.string.android_auto_recommendations_youtube,
+                               "app" to R.string.android_auto_recommendations_app).forEach { (value, labelRes) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onRecommendationsSourceChange(value)
+                                        showRecommendationsSourceDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                            ) {
+                                androidx.compose.material3.RadioButton(
+                                    selected = recommendationsSource == value,
+                                    onClick = null,
+                                )
+                                Text(
+                                    text = stringResource(labelRes),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(start = 12.dp),
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(
+                        onClick = { showRecommendationsSourceDialog = false }
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
+        }
 
         Spacer(Modifier.height(27.dp))
 
