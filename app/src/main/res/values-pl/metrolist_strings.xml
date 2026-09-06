@@ -497,7 +497,7 @@
     <string name="listen_together_no_blocked_users">Brak zablokowanych użytkowników</string>
     <string name="unblock">Odblokuj</string>
     <string name="user_blocked_by_host">Użytkownik zablokowany przez hosta</string>
-    <string name="ai_lyrics_translation">Tłumaczenie tekstów AI</string>
+    <string name="ai_lyrics_translation">Tłumaczenie</string>
     <string name="ai_translating_lyrics">Tłumaczenie tekstu…</string>
     <string name="ai_lyrics_translated">Tekst przetłumaczony</string>
     <string name="ai_provider">Dostawca</string>

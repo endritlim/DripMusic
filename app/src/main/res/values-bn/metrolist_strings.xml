@@ -434,7 +434,7 @@
     <string name="listen_together_no_blocked_users">কোনো ব্লক করা ব্যবহারকারী নেই</string>
     <string name="unblock">আনব্লক করুন</string>
     <string name="user_blocked_by_host">আয়োজকে কর্তৃক ব্লক করা হয়েছে</string>
-    <string name="ai_lyrics_translation">কৃত্রিম বুদ্ধিমত্তা কর্তৃক লিরিক্স অনুবাদ</string>
+    <string name="ai_lyrics_translation">অনুবাদ</string>
     <string name="ai_translating_lyrics">লিরিক্স অনুবাদ করা হচ্ছে…</string>
     <string name="ai_lyrics_translated">লিরিক্স অনুবাদ করা হয়েছে</string>
     <string name="ai_provider">প্রদানকারী</string>

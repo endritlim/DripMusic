@@ -443,7 +443,7 @@
     <string name="clear_recognition_history">مسح سجل التعرف</string>
     <string name="ai_translation_literal">ترجمة</string>
     <string name="ai_setup_guide">بيانات اعتماد واجهة برمجة التطبيقات</string>
-    <string name="ai_lyrics_translation">ترجمة كلمات الأغاني باستخدام الذكاء الاصطناعي</string>
+    <string name="ai_lyrics_translation">الترجمة</string>
     <string name="ai_error_translation_failed">فشلت الترجمة</string>
     <string name="map_csv_columns">تعيين خانات CSV</string>
     <string name="together">معًا</string>

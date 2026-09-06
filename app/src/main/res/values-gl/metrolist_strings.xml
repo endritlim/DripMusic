@@ -601,7 +601,7 @@
     <string name="listen_together_no_blocked_users">Non hai usuarios bloqueados</string>
     <string name="unblock">Desbloquear</string>
     <string name="user_blocked_by_host">Bloqueado polo anfitrión</string>
-    <string name="ai_lyrics_translation">Tradución de letras coa IA</string>
+    <string name="ai_lyrics_translation">Tradución</string>
     <string name="ai_translating_lyrics">Traducindo letra…</string>
     <string name="ai_lyrics_translated">Letra traducida</string>
     <string name="ai_provider">Provedor</string>

@@ -576,7 +576,7 @@
     <string name="listen_together_no_blocked_users">Немає заблокованих користувачів</string>
     <string name="unblock">Розблокувати</string>
     <string name="user_blocked_by_host">Заблокований організатором</string>
-    <string name="ai_lyrics_translation">ШІ-переклад текстів</string>
+    <string name="ai_lyrics_translation">Переклад</string>
     <string name="ai_translating_lyrics">Переклад тексту…</string>
     <string name="ai_lyrics_translated">Текст перекладено</string>
     <string name="ai_provider">Постачальник</string>

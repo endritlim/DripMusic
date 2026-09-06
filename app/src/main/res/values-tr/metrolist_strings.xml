@@ -416,7 +416,7 @@
     <string name="together">Birlikte</string>
     <string name="enter_room_code">Bir oda kodu girin</string>
     <string name="listen_together_settings_desc">Sunucu, kullanıcı adı ve daha fazlasını yapılandırın</string>
-    <string name="ai_lyrics_translation">Yapay zeka ile şarkı sözü çevirisi</string>
+    <string name="ai_lyrics_translation">Çeviri</string>
     <string name="ai_translating_lyrics">Sözler çevriliyor…</string>
     <string name="ai_lyrics_translated">Sözler çevrildi</string>
     <string name="ai_provider">Sağlayıcı</string>

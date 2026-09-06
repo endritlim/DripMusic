@@ -345,7 +345,7 @@
     <string name="no_account_found">Không tìm thấy tài khoản</string>
     <string name="enter_room_code">Nhập mã phòng</string>
     <string name="listen_together_settings_desc">Cấu hình server, username, và thêm nữa</string>
-    <string name="ai_lyrics_translation">Dịch lời bài hát bằng AI</string>
+    <string name="ai_lyrics_translation">Dịch</string>
     <string name="ai_translating_lyrics">Đang dịch lời bài hát…</string>
     <string name="ai_lyrics_translated">Lời đã dịch xong</string>
     <string name="player_background_solid">Tĩnh</string>

@@ -572,7 +572,7 @@
     <string name="listen_together_no_blocked_users">Bloklanmış istifadəçi yoxdur</string>
     <string name="unblock">Blokdan çıxarın</string>
     <string name="user_blocked_by_host">Host tərəfindən bloklanıb</string>
-    <string name="ai_lyrics_translation">AI sözləri tərcüməsi</string>
+    <string name="ai_lyrics_translation">Tərcümə</string>
     <string name="ai_translating_lyrics">Mahnı sözləri tərcümə edilir…</string>
     <string name="ai_lyrics_translated">Mahnı sözlərinin tərcüməsi</string>
     <string name="ai_provider">Təminatçı</string>

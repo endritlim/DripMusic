@@ -507,7 +507,7 @@
     <string name="listen_together_no_blocked_users">אין משתמשים חסומים</string>
     <string name="unblock">בטל חסימה</string>
     <string name="user_blocked_by_host">המשתמש חסום על ידי המארח</string>
-    <string name="ai_lyrics_translation">תרגום מילים באמצעות AI</string>
+    <string name="ai_lyrics_translation">תרגום</string>
     <string name="ai_translating_lyrics">תרגום מילים...</string>
     <string name="ai_lyrics_translated">מילים מתורגמות</string>
     <string name="ai_provider">ספק</string>

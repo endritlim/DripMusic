@@ -439,7 +439,7 @@
     <string name="clear_recognition_history">Vymazat historii rozpoznávání</string>
     <string name="ai_translation_literal">Překlad</string>
     <string name="ai_setup_guide">Údaje API</string>
-    <string name="ai_lyrics_translation">AI překlad textů</string>
+    <string name="ai_lyrics_translation">Překlad</string>
     <string name="ai_error_translation_failed">Překlad selhal</string>
     <string name="map_csv_columns">Namapovat sloupce CSV</string>
     <string name="together">Společné</string>

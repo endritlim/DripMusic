@@ -390,7 +390,7 @@
     <string name="listen_together_no_blocked_users">ไม่มีผู้ใช้ที่ถูกบล็อก</string>
     <string name="unblock">เลิกบล็อก</string>
     <string name="user_blocked_by_host">ผู้ใช้ถูกบล็อกโดยโฮสต์</string>
-    <string name="ai_lyrics_translation">แปลเนื้อเพลงด้วย AI</string>
+    <string name="ai_lyrics_translation">การแปล</string>
     <string name="ai_translating_lyrics">กำลังแปลเนื้อเพลง…</string>
     <string name="ai_lyrics_translated">แปลเนื้อเพลงแล้ว</string>
     <string name="ai_provider">ผู้ให้บริการ</string>

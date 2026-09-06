@@ -351,7 +351,7 @@
     <string name="listen_together_no_blocked_users">Nincsenek letiltott felhasználók</string>
     <string name="unblock">Letiltás feloldása</string>
     <string name="user_blocked_by_host">Felhasználó letiltva a host által</string>
-    <string name="ai_lyrics_translation">AI dalszöveg fordítás</string>
+    <string name="ai_lyrics_translation">Fordítás</string>
     <string name="ai_translating_lyrics">Dalszöveg fordítása…</string>
     <string name="ai_lyrics_translated">Dalszöveg lefordítva</string>
     <string name="ai_provider">Kiszolgáló</string>

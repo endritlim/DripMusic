@@ -358,7 +358,7 @@
     <string name="lyrics_animation_style_title">단어 단위 애니메이션 스타일</string>
     <string name="wrapped_no_data">표시할 데이터가 없습니다</string>
     <string name="not_playing">재생 중인 노래 없음</string>
-    <string name="ai_lyrics_translation">AI 가사 번역</string>
+    <string name="ai_lyrics_translation">번역</string>
     <string name="ai_translating_lyrics">가사를 번역하는 중…</string>
     <string name="ai_lyrics_translated">가사 번역 완료</string>
     <string name="ai_provider">AI 제공자</string>

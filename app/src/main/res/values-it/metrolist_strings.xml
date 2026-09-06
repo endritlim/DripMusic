@@ -419,7 +419,7 @@
     <string name="together">Insieme</string>
     <string name="enter_room_code">Inserisci un codice stanza</string>
     <string name="listen_together_settings_desc">Configura server, nome utente e altro</string>
-    <string name="ai_lyrics_translation">Traduzione testi AI</string>
+    <string name="ai_lyrics_translation">Traduzione</string>
     <string name="ai_translating_lyrics">Traduzione del testo…</string>
     <string name="ai_lyrics_translated">Testo tradotto</string>
     <string name="ai_provider">Fornitore</string>

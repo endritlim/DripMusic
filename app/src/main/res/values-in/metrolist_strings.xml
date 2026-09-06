@@ -413,7 +413,7 @@
     <string name="listen_together_no_blocked_users">Tidak ada pengguna yang diblokir</string>
     <string name="unblock">Buka blokir</string>
     <string name="user_blocked_by_host">Diblokir oleh host</string>
-    <string name="ai_lyrics_translation">Terjemahan lirik AI</string>
+    <string name="ai_lyrics_translation">Terjemahan</string>
     <string name="ai_translating_lyrics">Menerjemahkan lirik…</string>
     <string name="ai_lyrics_translated">Lirik diterjemahkan</string>
     <string name="ai_provider">Penyedia</string>

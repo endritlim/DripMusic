@@ -412,7 +412,7 @@
     <string name="widget_turntable">虚拟打碟台</string>
     <string name="enter_room_code">输入房间邀请码</string>
     <string name="listen_together_settings_desc">配置服务器、用户名等</string>
-    <string name="ai_lyrics_translation">AI 歌词翻译</string>
+    <string name="ai_lyrics_translation">翻译</string>
     <string name="ai_translating_lyrics">正在翻译歌词…</string>
     <string name="ai_lyrics_translated">歌词已翻译</string>
     <string name="ai_provider">提供商</string>

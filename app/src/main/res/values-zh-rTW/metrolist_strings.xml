@@ -455,7 +455,7 @@
     <string name="ai_provider">Ai模型</string>
     <string name="ai_lyrics_translated">歌詞翻譯</string>
     <string name="ai_translating_lyrics">翻譯歌詞…</string>
-    <string name="ai_lyrics_translation">AI歌詞翻譯</string>
+    <string name="ai_lyrics_translation">翻譯</string>
     <string name="user_blocked_by_host">使用者已被主持人封鎖</string>
     <string name="unblock">解除封鎖</string>
     <string name="listen_together_no_blocked_users">沒有被封鎖的用戶</string>

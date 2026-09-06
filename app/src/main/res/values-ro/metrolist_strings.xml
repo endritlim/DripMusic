@@ -409,7 +409,7 @@
     <string name="listen_together_no_blocked_users">Niciun utilizator blocat</string>
     <string name="unblock">Deblochează</string>
     <string name="user_blocked_by_host">Blocat de gazdă</string>
-    <string name="ai_lyrics_translation">Traducerea versurilor cu AI</string>
+    <string name="ai_lyrics_translation">Traducere</string>
     <string name="ai_translating_lyrics">Se traduc versurile…</string>
     <string name="ai_lyrics_translated">Versuri traduse</string>
     <string name="ai_provider">Furnizor</string>

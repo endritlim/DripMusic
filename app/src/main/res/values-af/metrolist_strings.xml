@@ -446,7 +446,7 @@
     <string name="listen_together_no_blocked_users">Geen geblokkeerde gebruikers nie</string>
     <string name="unblock">Deblokkeer</string>
     <string name="user_blocked_by_host">Geblokkeer deur gasheer</string>
-    <string name="ai_lyrics_translation">AI-vertaling van lirieke</string>
+    <string name="ai_lyrics_translation">Vertaling</string>
     <string name="ai_translating_lyrics">Besig om lirieke te vertaal…</string>
     <string name="ai_lyrics_translated">Lirieke vertaal</string>
     <string name="ai_provider">Verskaffer</string>

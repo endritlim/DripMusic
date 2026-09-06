@@ -533,7 +533,7 @@
     <string name="listen_together_no_blocked_users">Няма блокирани потребители</string>
     <string name="unblock">Отблокирай</string>
     <string name="user_blocked_by_host">Блокиран от домакина</string>
-    <string name="ai_lyrics_translation">Превеждане на текста на песен с ИИ</string>
+    <string name="ai_lyrics_translation">Превод</string>
     <string name="ai_translating_lyrics">Превеждане на текста…</string>
     <string name="ai_lyrics_translated">Текстът бе преведен</string>
     <string name="ai_provider">Доставчик</string>
