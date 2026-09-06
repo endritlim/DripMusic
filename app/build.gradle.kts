@@ -8,7 +8,7 @@ if (localPropertiesFile.exists()) {
 }
 
 val baseApplicationId = "com.dripmusic.app"
-val dripVersionName = "0.1.0"
+val dripVersionName = "0.2.0"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val buildCommit =
@@ -41,7 +41,7 @@ android {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
-        versionCode = 153
+        versionCode = 154
         versionName = dripVersionName
         val baseVersionName = requireNotNull(versionName)
         buildConfigField("String", "BASE_VERSION_NAME", "\"$baseVersionName\"")
