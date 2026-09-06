@@ -5,7 +5,10 @@ Funktionen:
 - Songs und Videos von YT Music abspielen
 - Hintergrund-Wiedergabe
 - Personalisierte Schnellauswahl
-- Konfigurierbarer Homescreen: Schalter für jede Section plus Speed-Dial-Raster, und ein Hauptschalter, der alle YouTube-Empfehlungs-Sections (Home-Reihen, Mixes, Ähnlich-wie, Stimmungen & Genres) inklusive ihrer Netzwerk-Anfragen ausblendet
+- Konfigurierbarer Homescreen: Sections per Drag & Drop sortieren, ganze Kategorien per Schalter ausblenden oder Reihenfolge mischen
+- Kostenlose Songtext-Übersetzung — ein Tipp im Songtext-Menü, powered by Google Translate, ohne API-Key
+- Songtexte aus mehreren Quellen mit wählbarer Priorität, plus Romanisierung
+- Android-Auto-Unterstützung mit wählbarer Empfehlungsquelle (YouTube-Home-Feed oder lokale Vorschläge)
 - Flüssiges Scrollen und schnelles Laden dank Performance-Fixes des Forks
 - Bibliotheksverwaltung
 - Songs für die Offline-Wiedergabe herunterladen und cachen

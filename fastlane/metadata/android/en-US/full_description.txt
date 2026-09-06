@@ -5,7 +5,10 @@ Features:
 - Play any song or video from YT Music
 - Background playback
 - Personalized quick picks
-- Configurable home screen: toggles for every section plus a speed dial grid, and a master toggle that hides all YouTube recommendation sections (home rows, mixes, similar-to, moods & genres) including their network requests
+- Configurable home screen: reorder sections with drag & drop, hide whole categories with toggles, or shuffle the order
+- Free lyrics translation — one tap in the lyrics menu, powered by Google Translate, no API key
+- Lyrics from multiple providers with selectable priority, plus romanization
+- Android Auto support with a selectable recommendations source (your YouTube home feed or local suggestions)
 - Smooth scrolling and fast loading, thanks to fork-specific performance fixes
 - Library management
 - Download and cache songs for offline playback
