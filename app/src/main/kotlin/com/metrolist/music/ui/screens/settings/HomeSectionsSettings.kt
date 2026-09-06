@@ -189,7 +189,7 @@ fun HomeSectionsSettings(
 
 /**
  * Subsection of the home screen settings: order the section categories via drag & drop and
- * hide/restore whole categories with the X.
+ * hide/restore whole categories with the toggle.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -305,17 +305,19 @@ fun HomeSectionOrderScreen(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         Spacer(Modifier.width(12.dp))
-                                        IconButton(
-                                            onClick = { toggleHidden(category) },
-                                            onLongClick = {},
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(
-                                                    if (hidden) R.drawable.add else R.drawable.close
-                                                ),
-                                                contentDescription = null,
-                                            )
-                                        }
+                                        Switch(
+                                            checked = !hidden,
+                                            onCheckedChange = { toggleHidden(category) },
+                                            thumbContent = {
+                                                Icon(
+                                                    painter = painterResource(
+                                                        if (hidden) R.drawable.close else R.drawable.check
+                                                    ),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                                )
+                                            }
+                                        )
                                     }
                                 },
                                 onClick = { toggleHidden(category) },
