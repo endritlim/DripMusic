@@ -162,6 +162,7 @@ fun HomeSectionsSettings(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.drag_handle),
                     title = { Text(stringResource(R.string.home_section_order)) },
+                    enabled = !randomizeHomeOrder,
                     onClick = { navController.navigate("settings/home_sections/order") },
                 ),
             )
