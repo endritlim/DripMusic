@@ -743,6 +743,20 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Loads the account name/avatar for consumers outside the home screen (e.g. the top app bar
+     * in MainActivity, which uses its own activity-scoped instance of this ViewModel and never
+     * runs [loadHomeData]).
+     */
+    fun refreshAccountInfo() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val cookie = context.dataStore.data.map { it[InnerTubeCookieKey] }.first()
+            if (cookie.isNullOrEmpty()) return@launch
+            YouTube.cookie = cookie
+            loadAccountInfo()
+        }
+    }
+
     private suspend fun loadAccountInfo() {
         YouTube.accountInfo().onSuccess { info ->
             accountName.value = info.name

@@ -133,6 +133,7 @@ import coil3.toBitmap
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
+import com.metrolist.innertube.utils.parseCookieString
 import com.metrolist.music.constants.AppBarHeight
 import com.metrolist.music.constants.AppLanguageKey
 import com.metrolist.music.constants.CheckForUpdatesKey
@@ -144,6 +145,7 @@ import com.metrolist.music.constants.DynamicThemeKey
 import com.metrolist.music.constants.EnableHighRefreshRateKey
 import com.metrolist.music.constants.EnableLandscapeScalingKey
 import com.metrolist.music.constants.ExperimentalLyricsKey
+import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.LastSeenVersionKey
 import com.metrolist.music.constants.ListenTogetherInTopBarKey
 import com.metrolist.music.constants.ListenTogetherUsernameKey
@@ -497,9 +499,12 @@ class MainActivity : FragmentActivity() {
                         if (!updatesEnabled) return@withContext
 
                         Updater.checkForUpdate().onSuccess { (releaseInfo, hasUpdate) ->
-                            if (releaseInfo != null) {
+                            // Only surface the new version when it's actually newer; the release
+                            // name never equals BASE_VERSION_NAME, so an unguarded comparison
+                            // would show the update badge permanently.
+                            if (releaseInfo != null && hasUpdate) {
                                 onLatestVersionNameChange(releaseInfo.versionName)
-                                if (hasUpdate && notifEnabled) {
+                                if (notifEnabled) {
                                     val downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo)
                                     if (downloadUrl != null) {
                                         val intent = Intent(Intent.ACTION_VIEW, downloadUrl.toUri())
@@ -710,6 +715,12 @@ class MainActivity : FragmentActivity() {
 
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val accountImageUrl by homeViewModel.accountImageUrl.collectAsStateWithLifecycle()
+                val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+                LaunchedEffect(innerTubeCookie) {
+                    if ("SAPISID" in parseCookieString(innerTubeCookie)) {
+                        homeViewModel.refreshAccountInfo()
+                    }
+                }
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
