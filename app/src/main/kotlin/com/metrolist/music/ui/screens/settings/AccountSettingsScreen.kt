@@ -252,21 +252,6 @@ fun AccountSettingsScreen(
             ),
         )
 
-        Spacer(Modifier.height(27.dp))
-
-        Material3SettingsGroup(
-            title = stringResource(R.string.integrations),
-            items = listOf(
-                Material3SettingsItem(
-                    title = { Text(stringResource(R.string.listen_together)) },
-                    icon = painterResource(R.drawable.integration),
-                    onClick = {
-                        navController.navigate("settings/integrations/listen_together")
-                    }
-                )
-            ),
-        )
-
         Spacer(Modifier.height(16.dp))
     }
 
