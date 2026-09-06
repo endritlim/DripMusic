@@ -39,10 +39,12 @@ DripMusic is a performance-focused fork of Metrolist, a 3rd party YouTube Music 
 
 2. If the build is not successful, review the error messages, fix the issues in your code, and try building again.
 3. Once the build is successful, you can test your changes on an emulator or a physical device. Install the generated APK located at `app/build/outputs/apk/foss/debug/DripMusic-<version>-fossDebug.apk` and ask a human for help testing the specific features you worked on.
-4. Release builds (signed via keystore environment variables):
+4. Release builds (signed with the private release keystore at `app/keystore/release.keystore`, gitignored):
+
+The signing credentials come from `keystore.properties` in the repo root (gitignored, format: `storePassword=…`, `keyAlias=…`, `keyPassword=…`) or, as a fallback, from the environment variables `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`:
 
 ```bash
-STORE_PASSWORD=android KEY_ALIAS=androiddebugkey KEY_PASSWORD=android ./gradlew :app:assembleFossRelease
+./gradlew :app:assembleFossRelease
 ```
 
-The signed APK lands at `app/build/outputs/apk/foss/release/DripMusic-<version>-fossRelease.apk`.
+The signed APK lands at `app/build/outputs/apk/foss/release/DripMusic-<version>-fossRelease.apk`. NEVER commit the keystore or its passwords — the signing key is what makes updates trustworthy.

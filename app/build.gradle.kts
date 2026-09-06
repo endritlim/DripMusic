@@ -7,6 +7,17 @@ if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
 
+// Release signing credentials: keystore.properties (gitignored, local) takes
+// precedence over environment variables (CI).
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+fun keystoreSecret(propertyKey: String, envKey: String): String? =
+    keystoreProperties.getProperty(propertyKey)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(envKey)?.takeIf { it.isNotBlank() }
+
 val baseApplicationId = "com.dripmusic.app"
 val dripVersionName = "0.2.0"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
@@ -98,9 +109,9 @@ android {
         }
         create("release") {
             storeFile = file("keystore/release.keystore")
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storePassword = keystoreSecret("storePassword", "STORE_PASSWORD")
+            keyAlias = keystoreSecret("keyAlias", "KEY_ALIAS")
+            keyPassword = keystoreSecret("keyPassword", "KEY_PASSWORD")
         }
         getByName("debug") {
             keyAlias = "androiddebugkey"
@@ -120,8 +131,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Sign locally when keystore env vars are present; CI builds unsigned.
-            if (System.getenv("STORE_PASSWORD") != null) {
+            // Sign locally when keystore credentials are available (keystore.properties
+            // or env vars); CI builds unsigned.
+            if (keystoreSecret("storePassword", "STORE_PASSWORD") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }

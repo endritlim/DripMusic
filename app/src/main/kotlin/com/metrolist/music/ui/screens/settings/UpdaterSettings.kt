@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -60,13 +61,16 @@ fun UpdaterScreen(
     val (updateNotifications, onUpdateNotificationsChange) = rememberPreference(UpdateNotificationsEnabledKey, true)
 
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     var isChecking by remember { mutableStateOf(false) }
     var updateAvailable by remember { mutableStateOf(false) }
     var latestVersion by remember { mutableStateOf<String?>(null) }
+    var releaseInfo by remember { mutableStateOf<com.metrolist.music.utils.ReleaseInfo?>(null) }
     var showChangelog by remember { mutableStateOf(false) }
     var changelogContent by remember { mutableStateOf<String?>(null) }
     var checkError by remember { mutableStateOf<String?>(null) }
     val failedToCheckUpdatesTemplate = stringResource(R.string.failed_to_check_updates)
+    val downloadUrl = releaseInfo?.let { Updater.getDownloadUrlForCurrentVariant(it) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -77,11 +81,12 @@ fun UpdaterScreen(
             withContext(Dispatchers.IO) {
                 Updater
                     .checkForUpdate(forceRefresh = true)
-                    .onSuccess { (releaseInfo, hasUpdate) ->
-                        if (releaseInfo != null) {
-                            latestVersion = releaseInfo.versionName
+                    .onSuccess { (info, hasUpdate) ->
+                        if (info != null) {
+                            releaseInfo = info
+                            latestVersion = info.versionName
                             updateAvailable = hasUpdate
-                            changelogContent = releaseInfo.description
+                            changelogContent = info.description
                         }
                     }.onFailure {
                         checkError = String.format(failedToCheckUpdatesTemplate, it.message ?: "Unknown error")
@@ -199,10 +204,31 @@ fun UpdaterScreen(
                                 )
                             }
                         },
-                        onClick = { if (!isChecking) performManualCheck() },
+                        onClick = {
+                            if (isChecking) return@Material3SettingsItem
+                            val url = downloadUrl
+                            if (updateAvailable && url != null) {
+                                uriHandler.openUri(url)
+                            } else {
+                                performManualCheck()
+                            }
+                        },
                     ),
                 ),
         )
+
+        if (updateAvailable && downloadUrl != null) {
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { uriHandler.openUri(downloadUrl!!) },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+            ) {
+                Text(stringResource(R.string.download_update))
+            }
+        }
 
         checkError?.let {
             Spacer(Modifier.height(12.dp))

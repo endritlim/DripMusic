@@ -1011,4 +1011,5 @@
     <string name="stream_source_web_creator">WEB_CREATOR</string>
     <string name="stream_source_web_creator_desc">Creator web client.</string>
     <string name="settings_sleep_alarm">Sleep &amp; Alarm</string>
+    <string name="download_update">Download update</string>
 </resources>
