@@ -82,36 +82,50 @@ fun SettingsScreen(
                     icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.appearance)) },
                     onClick = { navController.navigate("settings/appearance") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.play),
+                    title = { Text(stringResource(R.string.player)) },
+                    onClick = { navController.navigate("settings/player") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.graphic_eq),
+                    title = { Text(stringResource(R.string.settings_audio)) },
+                    onClick = { navController.navigate("settings/audio") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.lyrics)) },
+                    onClick = { navController.navigate("settings/lyrics") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.home_outlined),
+                    title = { Text(stringResource(R.string.home)) },
+                    onClick = { navController.navigate("settings/home") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.language),
+                    title = { Text(stringResource(R.string.content)) },
+                    onClick = { navController.navigate("settings/content") }
                 )
             )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Player & Content Section (moved up and combined with content)
+        // Playback Section
         Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_player_content),
+            title = stringResource(R.string.settings_section_playback),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.play),
-                    title = { Text(stringResource(R.string.player_and_audio)) },
-                    onClick = { navController.navigate("settings/player") }
+                    icon = painterResource(R.drawable.queue_music),
+                    title = { Text(stringResource(R.string.queue)) },
+                    onClick = { navController.navigate("settings/queue") }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.language),
-                    title = { Text(stringResource(R.string.content)) },
-                    onClick = { navController.navigate("settings/content") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.home_outlined),
-                    title = { Text(stringResource(R.string.home_screen_sections)) },
-                    description = { Text(stringResource(R.string.home_sections_settings_desc)) },
-                    onClick = { navController.navigate("settings/home_sections") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.translate),
-                    title = { Text(stringResource(R.string.ai_lyrics_translation)) },
-                    onClick = { navController.navigate("settings/ai") }
+                    icon = painterResource(R.drawable.bedtime),
+                    title = { Text(stringResource(R.string.settings_sleep_alarm)) },
+                    onClick = { navController.navigate("settings/alarm") }
                 )
             )
         )

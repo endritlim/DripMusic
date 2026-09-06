@@ -44,16 +44,21 @@ import com.metrolist.music.ui.screens.search.OnlineSearchResult
 import com.metrolist.music.ui.screens.search.SearchScreen
 import com.metrolist.music.ui.screens.settings.AboutScreen
 import com.metrolist.music.ui.screens.settings.AiSettings
+import com.metrolist.music.ui.screens.settings.AlarmSettings
 import com.metrolist.music.ui.screens.settings.AndroidAutoSettings
 import com.metrolist.music.ui.screens.settings.AppearanceSettings
+import com.metrolist.music.ui.screens.settings.AudioSettings
 import com.metrolist.music.ui.screens.settings.BackupAndRestore
 import com.metrolist.music.ui.screens.settings.AccountSettingsScreen
 import com.metrolist.music.ui.screens.settings.ContentSettings
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.screens.settings.HomeSectionOrderScreen
 import com.metrolist.music.ui.screens.settings.HomeSectionsSettings
-import com.metrolist.music.ui.screens.settings.PlayerSettings
+import com.metrolist.music.ui.screens.settings.HomeSettings
+import com.metrolist.music.ui.screens.settings.LyricsSettings
+import com.metrolist.music.ui.screens.settings.PlayerDesignSettings
 import com.metrolist.music.ui.screens.settings.PrivacySettings
+import com.metrolist.music.ui.screens.settings.QueueSettings
 import com.metrolist.music.ui.screens.settings.RomanizationSettings
 import com.metrolist.music.ui.screens.settings.SettingsScreen
 import com.metrolist.music.ui.screens.settings.StorageSettings
@@ -360,6 +365,34 @@ fun NavGraphBuilder.navigationBuilder(
         ContentSettings(navController)
     }
 
+    composable("settings/player") {
+        PlayerDesignSettings(navController)
+    }
+
+    composable("settings/audio") {
+        AudioSettings(navController)
+    }
+
+    composable("settings/queue") {
+        QueueSettings(navController)
+    }
+
+    composable("settings/alarm") {
+        AlarmSettings(navController)
+    }
+
+    composable("settings/lyrics") {
+        LyricsSettings(navController)
+    }
+
+    composable("settings/lyrics/romanization") {
+        RomanizationSettings(navController)
+    }
+
+    composable("settings/home") {
+        HomeSettings(navController)
+    }
+
     composable("settings/account") {
         AccountSettingsScreen(navController)
     }
@@ -372,16 +405,8 @@ fun NavGraphBuilder.navigationBuilder(
         HomeSectionOrderScreen(navController)
     }
 
-    composable("settings/content/romanization") {
-        RomanizationSettings(navController)
-    }
-
     composable("settings/ai") {
         AiSettings(navController)
-    }
-
-    composable("settings/player") {
-        PlayerSettings(navController)
     }
 
     composable("settings/storage") {
